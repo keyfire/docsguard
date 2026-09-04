@@ -20,7 +20,12 @@ itself, and the runner that prints the findings and answers with an exit code.
 """
 
 from .annotations import PitchItem, pitch_problems, pyproject_description, site_description
-from .checks import image_problems, injection_problems, mirror_problems
+from .checks import (
+    image_problems,
+    injection_problems,
+    mirror_problems,
+    translation_problems,
+)
 from .layout import Layout
 from .pages import (
     IMAGE,
@@ -60,4 +65,5 @@ __all__ = [
     "section_body",
     "site_description",
     "site_pages",
+    "translation_problems",
 ]

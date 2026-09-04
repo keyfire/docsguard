@@ -5,7 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from docsguard import Layout, image_problems, injection_problems, mirror_problems, report, run
+from docsguard import (
+    Layout,
+    image_problems,
+    injection_problems,
+    mirror_problems,
+    report,
+    run,
+    translation_problems,
+)
 
 
 @pytest.fixture()
@@ -100,6 +108,23 @@ def test_a_page_that_shows_the_png_instead_of_the_svg(tmp_path):
     assert len(problems) == 1 and "flow.svg" in problems[0]
 
 
+def test_a_page_without_its_translation(layout):
+    """A bilingual site loses a translation silently: the page just stops being offered."""
+    (layout.docs / "index.md").write_text("x\n", encoding="utf-8")
+    (layout.docs / "install.md").write_text("x\n", encoding="utf-8")
+    (layout.docs / "index.ru.md").write_text("x\n", encoding="utf-8")
+    problems = translation_problems(layout, sorted(layout.docs.glob("*.md")))
+    assert len(problems) == 1 and "install.md" in problems[0]
+
+
+def test_a_repository_document_is_judged_for_existence_only(layout):
+    """The README shows the PNG on purpose - GitHub follows no theme."""
+    (layout.root / "README.md").write_text("![a](docs/flow.png)\n", encoding="utf-8")
+    (layout.docs / "flow.png").write_bytes(b"\x89PNG")
+    (layout.docs / "flow.svg").write_text("<svg/>", encoding="utf-8")
+    assert image_problems(layout, documents=["README.md"], prefer_svg=True) == []
+
+
 def test_the_runner_prints_every_finding_and_answers_one():
     stream = io.StringIO()
     code = run([lambda: ["first"], lambda: ["second", "third"]], stream=stream)
@@ -118,6 +143,13 @@ def test_a_check_that_raises_becomes_a_finding_and_the_rest_still_run():
     assert code == 1
     printed = stream.getvalue()
     assert "the check itself failed" in printed and "still counted" in printed
+
+
+def test_quiet_prints_the_summary_alone():
+    stream = io.StringIO()
+    assert run([lambda: ["a finding"]], stream=stream, quiet=True) == 1
+    printed = stream.getvalue()
+    assert "a finding" not in printed and "1 problem" in printed
 
 
 def test_no_findings_answer_zero():

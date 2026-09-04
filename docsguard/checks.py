@@ -82,10 +82,34 @@ def injection_problems(
     return problems
 
 
+def translation_problems(
+    layout: Layout,
+    pages,
+    *,
+    suffix: str = ".ru.md",
+) -> list[str]:
+    """A published page that has no counterpart in the other language.
+
+    `pages` are the published pages (paths or names); the counterparts themselves are skipped,
+    so the list is walked once. A bilingual site loses a translation silently - the page simply
+    stops being offered in that language, and nothing about the build says so.
+    """
+    problems: list[str] = []
+    for page in pages:
+        name = getattr(page, "name", page)
+        if name.endswith(suffix):
+            continue
+        counterpart = name.removesuffix(".md") + suffix
+        if not (layout.docs / counterpart).is_file():
+            problems.append(f"{name}: has no {counterpart}")
+    return problems
+
+
 def image_problems(
     layout: Layout,
-    names: tuple[str, ...] | list[str],
+    names: tuple[str, ...] | list[str] = (),
     *,
+    documents: tuple[str, ...] | list[str] = (),
     prefer_svg: bool = False,
 ) -> list[str]:
     """An image a page links and the repository does not carry.
@@ -100,8 +124,12 @@ def image_problems(
     a dark picture for a while because the page linked the README's copy.
     """
     problems: list[str] = []
-    for name in names:
-        for link in IMAGE.findall(layout.page(name)):
+    sources = [(name, layout.page(name), prefer_svg) for name in names]
+    # A repository document is judged for existence only: the README shows the PNG on purpose -
+    # GitHub follows no theme, so the twin that carries both palettes would help nobody there.
+    sources += [(name, layout.document(name), False) for name in documents]
+    for name, text, judge_svg in sources:
+        for link in IMAGE.findall(text):
             if layout.raw_prefix and link.startswith(layout.raw_prefix):
                 target = (layout.root / link[len(layout.raw_prefix):]).resolve()
             elif link.startswith(("http://", "https://", "data:", "#")):
@@ -113,7 +141,7 @@ def image_problems(
             if not target.is_file():
                 problems.append(f"{name}: the image {link} is not in the repository")
                 continue
-            if prefer_svg and target.suffix == ".png" and target.with_suffix(".svg").is_file():
+            if judge_svg and target.suffix == ".png" and target.with_suffix(".svg").is_file():
                 problems.append(
                     f"{name}: {target.name} follows no theme - the page needs "
                     f"{target.with_suffix('.svg').name}, the PNG belongs to the mirrored copy"

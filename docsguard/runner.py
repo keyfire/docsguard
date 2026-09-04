@@ -11,21 +11,27 @@ import sys
 from collections.abc import Callable, Iterable
 
 
-def report(problems: Iterable[str], *, title: str = "documentation", stream=None) -> int:
-    """Print the findings and answer with the exit code: 0 when there are none."""
+def report(problems: Iterable[str], *, title: str = "documentation", stream=None,
+           quiet: bool = False) -> int:
+    """Print the findings and answer with the exit code: 0 when there are none.
+
+    `quiet` prints the summary line alone - what a run inside another report wants, where the
+    findings themselves would drown the thing being reported.
+    """
     stream = stream or sys.stdout
     found = list(problems)
     if not found:
         print(f"OK: {title} matches the sources", file=stream)
         return 0
+    if not quiet:
+        for problem in found:
+            print(f"  - {problem}", file=stream)
     print(f"{title}: {len(found)} problem(s)", file=stream)
-    for problem in found:
-        print(f"  - {problem}", file=stream)
     return 1
 
 
 def run(checks: Iterable[Callable[[], Iterable[str]]], *, title: str = "documentation",
-        stream=None) -> int:
+        stream=None, quiet: bool = False) -> int:
     """Run every check, collect what they find, print it, answer with the exit code.
 
     A check that raises is not allowed to hide the others: the exception is reported as a
@@ -38,4 +44,4 @@ def run(checks: Iterable[Callable[[], Iterable[str]]], *, title: str = "document
             problems.extend(check())
         except Exception as error:  # noqa: BLE001 - the guard reports, it does not crash
             problems.append(f"{getattr(check, '__name__', check)}: the check itself failed - {error!r}")
-    return report(problems, title=title, stream=stream)
+    return report(problems, title=title, stream=stream, quiet=quiet)
