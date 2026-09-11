@@ -64,7 +64,13 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   between the features block, the repository's own table and the one-liners quoted instead of
   the page. Both directions are judged, so a feature that disappears does not leave the guard
   demanding a word for it.
-- **Mirror checks** - `mirror_problems`, `injection_problems`, `image_problems`.
+- **Claims** - `Claim`, `claim_texts` and `claim_problems`: one fact told in several documents
+  and in the docstrings of the code at once. Every place the table names has to state it, and
+  the superseded wording - in the spelling it really had - may appear nowhere that was searched.
+  The table itself stays in the repository: which statements matter and in which words is
+  knowledge about the subject, not about guarding.
+- **Mirror checks** - `mirror_problems`, `injection_problems`, `image_problems`,
+  `translation_problems`.
 - **`run`** - runs every check, prints every finding, answers with the exit code CI reads. A
   check that raises becomes a finding of its own: a guard whose own bug reads as "no problems"
   is worse than no guard.
