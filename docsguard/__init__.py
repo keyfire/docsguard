@@ -33,9 +33,13 @@ from .checks import (
 from .conventions import (
     asks_for_text,
     encoding_problems,
+    newline_problems,
     process_encoding_problems,
     process_starts,
     python_sources,
+    text_write_newline_problems,
+    text_writes,
+    writes_text,
 )
 from .coverage import coverage_problems
 from .layout import Layout
@@ -53,7 +57,7 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "IMAGE",
@@ -76,6 +80,7 @@ __all__ = [
     "lede",
     "mirror_problems",
     "mirror_source",
+    "newline_problems",
     "page_body",
     "pitch_problems",
     "process_encoding_problems",
@@ -87,5 +92,8 @@ __all__ = [
     "section_body",
     "site_description",
     "site_pages",
+    "text_write_newline_problems",
+    "text_writes",
     "translation_problems",
+    "writes_text",
 ]
