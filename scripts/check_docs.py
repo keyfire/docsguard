@@ -40,6 +40,9 @@ SURFACE = (("README.md", "What is in it"), ("README.ru.md", "Что внутри
 #: itself, so a quoted path or file name - `docs/index.md`, `pyproject.toml` - is not one.
 _QUOTED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 
+#: The install line a consumer copies: the URL and what it is pinned to.
+_INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(\S+)")
+
 
 def public_names() -> set[str]:
     """The public surface as the package declares it: `__all__` without the dunders.
@@ -69,7 +72,32 @@ def check_surface() -> list[str]:
     return problems
 
 
-CHECKS = (check_surface,)
+def check_install() -> list[str]:
+    """The tag the install lines pin is the version the package reports.
+
+    The package is installed from git, so the tag IS the release: a version bumped without the
+    line above going up leaves every consumer copying the address of the previous one. The two
+    are one step, and this is what makes them one step.
+    """
+    expected = f"v{docsguard.__version__}"
+    problems: list[str] = []
+    for name, _ in SURFACE:
+        pinned = _INSTALL.findall(LAYOUT.page(name))
+        if not pinned:
+            problems.append(
+                f"{name}: no install line - where does a consumer read the URL and the tag?"
+            )
+            continue
+        for tag in pinned:
+            if tag != expected:
+                problems.append(
+                    f"{name}: the install line pins {tag} and the package reports {expected} - "
+                    "a version bump and the line a consumer copies are one step"
+                )
+    return problems
+
+
+CHECKS = (check_surface, check_install)
 
 
 def problems() -> list[str]:

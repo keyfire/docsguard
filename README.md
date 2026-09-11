@@ -19,11 +19,24 @@ next kept them, so the same defect was a finding in one place and silence in the
 ## Install
 
 The guard runs in CI and is not shipped to users, so it is installed from git rather than
-released:
+released - and by TAG, not by a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@main
+pip install git+https://github.com/keyfire/docsguard@v0.3.0
 ```
+
+A consumer pinned to `@main` takes a change made here in the middle of a run of its own, and a
+red run nobody caused is a red run nobody reads. It also leaves the order of merging to be
+remembered rather than written down: the shared package first, the consumer after it. A tag
+turns that into a line in the consumer's own pull request, reviewed and tested there.
+
+Raising a pin, in order:
+
+1. **the change lands here** - `__version__` and the install lines above go up in the same
+   commit; the guard fails the run when they disagree, so neither can be forgotten;
+2. **`main` is tagged** `v<version>`, annotated, right after the merge;
+3. **each consumer raises its pin** to that tag, in a pull request of its own - the run that
+   goes red on a change here goes red in the repository that asked for the change.
 
 ## Use
 
@@ -86,9 +99,11 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
 
 The package is pointed at its own README: `python scripts/check_docs.py` judges the section
 above the way a consumer's guard judges its tool table - every public name of `__all__` is
-named in both editions, and neither edition names one that is gone. It runs in CI on every
-push, and the test suite asserts the same thing, so a new function reaches `main` only with
-the two lines that tell a reader it exists.
+named in both editions, and neither edition names one that is gone. The install lines are
+judged with it: the tag they pin has to be the version the package reports, so a bump cannot
+leave consumers reading last release's URL. It runs in CI on every push, and the test suite
+asserts the same thing, so a new function reaches `main` only with the two lines that tell a
+reader it exists.
 
 The gap it was written for was its own: a function had been living in the package and named
 in no edition of the README, while three repositories were installing this package to be told
