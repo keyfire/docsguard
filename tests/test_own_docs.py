@@ -44,7 +44,8 @@ def sabotage(guard, tmp_path, monkeypatch):
     def edit(name: str, old: str, new: str) -> None:
         path = tmp_path / name
         text = path.read_text(encoding="utf-8")
-        assert old in text, f"{name}: {old!r} is not there any more - has the README been rewritten?"
+        assert old in text, (
+            f"{name}: {old!r} is not there any more - has the README been rewritten?")
         path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
     return edit
@@ -97,6 +98,28 @@ def test_a_name_the_package_no_longer_exports_is_found(sabotage, guard):
     assert any("coverage_problems" in problem for problem in problems)
     assert any("coverage_gaps" in problem and "no such thing" in problem
                for problem in problems)
+
+
+def test_the_install_line_pins_the_version_the_package_reports(sabotage, guard):
+    """A bump without the line a consumer copies leaves everyone on the previous tag."""
+    sabotage("README.md", "docsguard@v", "docsguard@main-v")
+
+    problems = guard.problems()
+
+    assert len(problems) == 1
+    assert "install line" in problems[0]
+    assert "one step" in problems[0]
+
+
+def test_an_install_line_that_vanished_is_a_finding(sabotage, guard):
+    """Silence here would mean the check passes a README nobody can install from."""
+    sabotage("README.ru.md",
+             "pip install git+https://github.com/keyfire/docsguard@", "pip install ")
+
+    problems = guard.problems()
+
+    assert len(problems) == 1
+    assert "no install line" in problems[0]
 
 
 def test_a_renamed_section_is_a_finding_rather_than_silence(sabotage, guard):
