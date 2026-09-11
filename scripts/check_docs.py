@@ -40,6 +40,12 @@ SURFACE = (("README.md", "What is in it"), ("README.ru.md", "Что внутри
 #: itself, so a quoted path or file name - `docs/index.md`, `pyproject.toml` - is not one.
 _QUOTED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 
+#: Words the surface section quotes that are not part of the surface. One each, with its
+#: reason: `ast` is the standard-library module a reader is told the check parses with. A word
+#: is added here only when it is deliberately not a capability - the list is short on purpose,
+#: because anything in it is a name the coverage check stops judging.
+NOT_THE_SURFACE = frozenset({"ast"})
+
 #: The install line a consumer copies: the URL and what it is pinned to.
 _INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(\S+)")
 
@@ -65,7 +71,7 @@ def check_surface() -> list[str]:
             continue
         problems += coverage_problems(
             public_names(),
-            set(_QUOTED.findall(body)),
+            set(_QUOTED.findall(body)) - NOT_THE_SURFACE,
             what="public name",
             where=f"{name} / {heading}",
         )
