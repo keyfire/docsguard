@@ -5,8 +5,9 @@ manifest live - and the checks that are about its own subject: the tools it regi
 environment variables it reads, the rules it implements. What lives here is everything those
 checks had in common and had already copied three times: reading a page without its
 frontmatter, the block between injection markers, the annotations a repository states about
-itself, the statements that have to be told in the same words everywhere, and the runner that
-prints the findings and answers with an exit code.
+itself, the statements that have to be told in the same words everywhere, the coverage of
+what the sources offer by what a document lists, and the runner that prints the findings and
+answers with an exit code.
 
     from pathlib import Path
     from docsguard import Layout, PitchItem, pitch_problems, run
@@ -28,6 +29,7 @@ from .checks import (
     mirror_problems,
     translation_problems,
 )
+from .coverage import coverage_problems
 from .layout import Layout
 from .pages import (
     IMAGE,
@@ -43,7 +45,7 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "IMAGE",
@@ -55,6 +57,7 @@ __all__ = [
     "claim_problems",
     "claim_text",
     "claim_texts",
+    "coverage_problems",
     "front_description",
     "headings",
     "image_problems",

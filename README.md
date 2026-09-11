@@ -59,21 +59,40 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   Every function takes one, so the repository-specific knowledge stays in one literal.
 - **Page readers** - `page_body` (without frontmatter and generator notes), `section_body`,
   `box_headlines`, `headings`, `front_description`, `lede`, `injected`, `mirror_source`,
-  `site_pages`.
+  `site_pages`, and `IMAGE` - the pattern the image links of a page are read with, shared so
+  that a repository judging its own images reads them the way the checks here do.
 - **Annotations** - `site_description`, `pyproject_description` and `pitch_problems`: the gap
-  between the features block, the repository's own table and the one-liners quoted instead of
-  the page. Both directions are judged, so a feature that disappears does not leave the guard
-  demanding a word for it.
-- **Claims** - `Claim`, `claim_texts` and `claim_problems`: one fact told in several documents
-  and in the docstrings of the code at once. Every place the table names has to state it, and
-  the superseded wording - in the spelling it really had - may appear nowhere that was searched.
-  The table itself stays in the repository: which statements matter and in which words is
-  knowledge about the subject, not about guarding.
+  between the features block, the repository's own table of `PitchItem` rows and the one-liners
+  quoted instead of the page. Both directions are judged, so a feature that disappears does not
+  leave the guard demanding a word for it.
+- **Claims** - `Claim`, `claim_text`, `claim_texts` and `claim_problems`: one fact told in several
+  documents and in the docstrings of the code at once. Every place the table names has to state
+  it, and the superseded wording - in the spelling it really had - may appear nowhere that was
+  searched. The table itself stays in the repository: which statements matter and in which words
+  is knowledge about the subject, not about guarding.
 - **Mirror checks** - `mirror_problems`, `injection_problems`, `image_problems`,
   `translation_problems`.
-- **`run`** - runs every check, prints every finding, answers with the exit code CI reads. A
-  check that raises becomes a finding of its own: a guard whose own bug reads as "no problems"
-  is worse than no guard.
+- **Coverage** - `coverage_problems`: what the sources offer against what one document lists.
+  The tools an MCP server registers, the variables the code reads, the names a package exports:
+  each repository had written that set difference by hand, more than once inside the same file.
+  Both directions again, and an empty sources-side set is a finding of its own: a reader
+  that has stopped finding anything reads exactly like a clean repository.
+- **`run`** and **`report`** - `run` calls every check, collects what they find and hands the
+  list to `report`, which prints it and answers with the exit code CI reads. A check that
+  raises becomes a finding of its own: a guard whose own bug reads as "no problems" is worse
+  than no guard.
+
+## Guarding itself
+
+The package is pointed at its own README: `python scripts/check_docs.py` judges the section
+above the way a consumer's guard judges its tool table - every public name of `__all__` is
+named in both editions, and neither edition names one that is gone. It runs in CI on every
+push, and the test suite asserts the same thing, so a new function reaches `main` only with
+the two lines that tell a reader it exists.
+
+The gap it was written for was its own: a function had been living in the package and named
+in no edition of the README, while three repositories were installing this package to be told
+about exactly that.
 
 ## Licence
 
