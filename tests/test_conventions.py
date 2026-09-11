@@ -19,15 +19,20 @@ import pytest
 from docsguard import (
     Layout,
     encoding_problems,
+    newline_problems,
     process_encoding_problems,
     process_starts,
     python_sources,
+    text_write_newline_problems,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 
 #: Everything written in Python here: the package, its tests and the guard over its own README.
 FOLDERS = ("docsguard", "tests", "scripts")
+#: The folders of the newline convention - the code whose writes OUTLIVE the run. A test writes
+#: into a temporary directory that is gone when the run ends, so it is not among them.
+WRITING_FOLDERS = ("docsguard", "scripts")
 
 
 def parsed(source: str) -> ast.AST:
@@ -111,3 +116,86 @@ def test_the_reader_is_given_every_python_file_of_the_named_folders():
     # what makes two runs of the guard comparable line by line.
     order = {folder: number for number, folder in enumerate(FOLDERS)}
     assert found == sorted(found, key=lambda name: (order[name.split("/")[0]], name))
+
+
+def test_a_text_file_written_without_a_newline_is_caught():
+    """Both spellings of a write, and the failure is the same one in each."""
+    written = 'from pathlib import Path\nPath("page.md").write_text(text, encoding="utf-8")\n'
+    opened = 'with open("page.md", "w", encoding="utf-8") as handle:\n    handle.write(text)\n'
+
+    assert len(newline_problems(written, "written.py")) == 1
+    assert len(newline_problems(opened, "opened.py")) == 1
+
+
+def test_a_write_that_names_the_newline_is_left_alone():
+    """Any value counts: naming it is the rule, and `None` says the platform's ending is meant."""
+    empty = 'p.write_text(text, encoding="utf-8", newline="")\n'
+    feed = r'p.write_text(text, encoding="utf-8", newline="\n")' + "\n"
+    deliberate = 'p.write_text(text, encoding="utf-8", newline=None)\n'
+
+    assert newline_problems(empty, "empty.py") == []
+    assert newline_problems(feed, "feed.py") == []
+    assert newline_problems(deliberate, "deliberate.py") == []
+
+
+def test_bytes_are_not_a_text_file():
+    """Binary goes through untouched: there is no line ending to translate, and no keyword."""
+    binary = 'open("archive.zip", "wb").write(blob)\n'
+    write_bytes = 'p.write_bytes(blob)\n'
+
+    assert newline_problems(binary, "binary.py") == []
+    assert newline_problems(write_bytes, "bytes.py") == []
+
+
+def test_a_file_opened_for_reading_is_not_a_write():
+    """The default mode reads, and reading is where translating the ending is what is wanted."""
+    default = 'open("page.md", encoding="utf-8").read()\n'
+    spelled = 'with path.open("r", encoding="utf-8-sig") as handle:\n    handle.read()\n'
+
+    assert newline_problems(default, "default.py") == []
+    assert newline_problems(spelled, "spelled.py") == []
+
+
+@pytest.mark.parametrize("mode", ["w", "a", "x", "r+", "w+", "at"])
+def test_every_mode_that_writes_is_judged(mode):
+    """A reader that knew only `"w"` would pass an append - the shape a log or a journal has."""
+    source = f'open("page.md", "{mode}", encoding="utf-8").write(text)\n'
+
+    assert len(newline_problems(source, "mode.py")) == 1
+
+
+def test_a_mode_that_cannot_be_read_from_here_is_judged_rather_than_waved_through():
+    """A guard that trusts what it cannot see stops at the first indirection."""
+    source = 'open(path, mode).write(text)\n'
+
+    assert len(newline_problems(source, "indirect.py")) == 1
+
+
+def test_the_finding_names_the_line_it_is_about():
+    source = 'from pathlib import Path\n\n\nPath("page.md").write_text(text)\n'
+
+    assert newline_problems(source, "where.py") == [
+        'where.py:4: a text file is written without newline=""'
+    ]
+
+
+def test_the_package_holds_itself_to_the_newline_convention():
+    """The rule this package hands out is the rule its own sources live by.
+
+    A shorter list of folders than the process convention takes, and deliberately so: what a
+    test writes goes into a temporary directory and is never committed, shipped or compared
+    between machines - see `text_write_newline_problems`.
+    """
+    assert text_write_newline_problems(Layout(root=ROOT), WRITING_FOLDERS) == []
+
+
+def test_the_writes_reader_finds_the_calls_it_is_meant_to_judge(tmp_path):
+    """A detector that finds nothing passes every repository, this one included."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "offender.py").write_text(
+        'p.write_text(text, encoding="utf-8")\n', encoding="utf-8", newline="")
+
+    problems = text_write_newline_problems(Layout(root=tmp_path), ("src",))
+
+    assert len(problems) == 1
+    assert "src/offender.py:1" in problems[0]

@@ -22,7 +22,7 @@ The guard runs in CI and is not shipped to users, so it is installed from git ra
 released - and by TAG, not by a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.4.0
+pip install git+https://github.com/keyfire/docsguard@v0.5.0
 ```
 
 A consumer pinned to `@main` takes a change made here in the middle of a run of its own, and a
@@ -90,14 +90,22 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   each repository had written that set difference by hand, more than once inside the same file.
   Both directions again, and an empty sources-side set is a finding of its own: a reader
   that has stopped finding anything reads exactly like a clean repository.
-- **Conventions of the sources** - `process_encoding_problems`, with `python_sources`,
-  `process_starts`, `asks_for_text` and `encoding_problems` underneath it: the rules no test of
-  a feature would ever notice. The one that is here is the encoding of a started process - a
-  process read as TEXT has to name `encoding="utf-8"`, or it is decoded with whatever code page
-  the machine has and the failure is the silent kind: the text comes back as replacement
-  characters and the exit code goes on saying the run went well. Read with `ast`, because the
-  call that started this is written `(run or subprocess.run)(...)` and a search for the text of
-  a call looks straight past it. What stays with the consumer is the list of folders to read.
+- **Conventions of the sources** - the rules no test of a feature would ever notice, both of
+  them read with `ast` and both leaving the list of folders with the consumer. The first is the
+  encoding of a started PROCESS: `process_encoding_problems`, with `python_sources`,
+  `process_starts`, `asks_for_text` and `encoding_problems` underneath it. A process read as TEXT
+  has to name `encoding="utf-8"`, or it is decoded with whatever code page the machine has and
+  the failure is the silent kind: the text comes back as replacement characters and the exit code
+  goes on saying the run went well. `ast` rather than a search, because the call that started
+  this is written `(run or subprocess.run)(...)` and a search for the text of a call looks
+  straight past it.
+- The second is the newline of a written FILE: `text_write_newline_problems`, with `text_writes`,
+  `writes_text` and `newline_problems` underneath it. A text file written without naming
+  `newline=""` takes the platform's line ending, so a generator that rewrites a page on Windows
+  hands back a file with every line changed - invisible in a checkout with
+  `core.autocrlf=input`, and on a machine without it the whole file goes to a public repository
+  as one line-ending change. The folders are a shorter list than the process convention takes:
+  what a test writes goes to a temporary directory and outlives nothing.
 - **`run`** and **`report`** - `run` calls every check, collects what they find and hands the
   list to `report`, which prints it and answers with the exit code CI reads. A check that
   raises becomes a finding of its own: a guard whose own bug reads as "no problems" is worse
@@ -112,7 +120,8 @@ judged with it: the tag they pin has to be the version the package reports, so a
 leave consumers reading last release's URL. It runs in CI on every push, and the test suite
 asserts the same thing, so a new function reaches `main` only with the two lines that tell a
 reader it exists. The package is held to the conventions it ships as well: its own suite runs
-`process_encoding_problems` over `docsguard`, `tests` and `scripts`.
+`process_encoding_problems` over `docsguard`, `tests` and `scripts`, and
+`text_write_newline_problems` over the two of those whose writes outlive the run.
 
 The gap it was written for was its own: a function had been living in the package and named
 in no edition of the README, while three repositories were installing this package to be told
