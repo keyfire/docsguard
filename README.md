@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.8.0
+pip install git+https://github.com/keyfire/docsguard@v0.9.0
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody

@@ -23,7 +23,7 @@
 Ставят его по тегу, а не по ветке:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.8.0
+pip install git+https://github.com/keyfire/docsguard@v0.9.0
 ```
 
 Потребитель, привязанный к `@main`, получает сделанную здесь правку посреди собственной
