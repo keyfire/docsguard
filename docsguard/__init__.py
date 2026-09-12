@@ -45,10 +45,14 @@ from .coverage import coverage_problems
 from .jargon import (
     JARGON,
     JargonWord,
+    empty_exceptions,
     jargon_findings,
     jargon_problems,
     jargon_self_check,
     russian_pages,
+    russian_strings,
+    source_findings,
+    source_jargon_problems,
     without_code,
 )
 from .layout import Layout
@@ -66,7 +70,7 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 
 __all__ = [
     "IMAGE",
@@ -82,6 +86,7 @@ __all__ = [
     "claim_text",
     "claim_texts",
     "coverage_problems",
+    "empty_exceptions",
     "encoding_problems",
     "front_description",
     "headings",
@@ -104,9 +109,12 @@ __all__ = [
     "report",
     "run",
     "russian_pages",
+    "russian_strings",
     "section_body",
     "site_description",
     "site_pages",
+    "source_findings",
+    "source_jargon_problems",
     "text_write_newline_problems",
     "text_writes",
     "translation_problems",

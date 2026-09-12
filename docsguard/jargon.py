@@ -21,10 +21,19 @@ The traps are inside Russian words themselves. "пин" sits in "пингвин"
 endings instead of a blanket `\w*` wherever an ending could grow into another word, and why the
 module proves itself before it judges anybody: `jargon_self_check` runs the dictionary over
 sentences that have to be found and sentences that have to stay quiet.
+
+The help of a command and the error it prints are Russian too, and they live in the sources
+rather than on a page: they reach a terminal the moment the tool runs. `source_jargon_problems`
+reads the string literals of the files a repository names for it, and reads them with `ast` for
+the reason the conventions next door are read that way: a regular expression over the text of a
+file trips on an escape and glues two implicitly concatenated strings into one word that neither
+of them contains. Only a literal with Cyrillic in it is judged - the English half of a message
+catalog is made of the very words the dictionary is about, and there they are the right ones.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -54,15 +63,22 @@ class JargonWord:
 #: two can be read side by side. A root with a blanket `\w*` is a root that grows into no other
 #: Russian word; the rest carry their endings, because "пин" with a free tail eats "пингвин".
 #:
-#: The dictionary got shorter on 12 September 2026. The owner read it and kept the words that
-#: stop him mid-sentence. Eleven others, "фича" and "джоба" among them, he reads without
-#: translating, so their rows are gone. Putting one back takes the same decision from him.
+#: The dictionary got shorter on 12 September 2026, and it was shortened by reading rather than
+#: by argument: what stayed are the words that stop a reader mid-sentence. Eleven others, "фича"
+#: and "джоба" among them, are read straight past, so their rows are gone. Putting a row back
+#: takes a reading of the same kind.
 #:
 #: Three rows joined it the same day. "скаффолдинг" is what this tooling called the part of the
-#: engine that makes metadata, until the owner named that part in Russian. "воркспейс" and
+#: engine that makes metadata, until that part got a Russian name. "воркспейс" and
 #: "воркфлоу" are borrowed together and mean nothing like each other, a folder against a
 #: process, so they are two rows and the Russian each one asks for is its own. The last root
 #: carries no endings at all: the word never declines.
+#:
+#: Six more came from the documentation of the tools themselves, read through on 13 September
+#: 2026. Two of them are written several ways by the same person on the same day - "бэкенд"
+#: turns up as "бекенд" and as "бэк-энд", "мейнтейнер" as "мэйнтейнер" - so their roots carry
+#: the spellings rather than one of them. "топ-объект" is half Russian already and is only ever
+#: written with the hyphen; "легаси" declines no more than "воркфлоу" does.
 JARGON: tuple[JargonWord, ...] = (
     JargonWord(
         "пин",
@@ -90,6 +106,12 @@ JARGON: tuple[JargonWord, ...] = (
     JargonWord("скаффолдинг", r"скаффолдинг\w*", "создание метаданных"),
     JargonWord("воркспейс", r"воркспейс\w*", "рабочая папка"),
     JargonWord("воркфлоу", r"воркфлоу", "процесс, файл процесса"),
+    JargonWord("дашборд", r"дашборд\w*", "сводка, панель"),
+    JargonWord("бэкенд", r"б[эе]к-?[эе]нд\w*", "серверная часть"),
+    JargonWord("лаунчер", r"лаунчер\w*", "программа запуска"),
+    JargonWord("мейнтейнер", r"м[эеа]йнтейнер\w*", "сопровождающий"),
+    JargonWord("топ-объект", r"топ-объект\w*", "объект верхнего уровня"),
+    JargonWord("легаси", r"легаси", "старый долг, унаследованный код"),
 )
 
 #: The spans of a page that are identifiers rather than prose: a fenced block, an inline code
@@ -165,6 +187,21 @@ def jargon_findings(
             for line, word, written in _found(text, allow=allow, dictionary=dictionary)]
 
 
+def empty_exceptions(allow: Iterable[str], dictionary: Iterable[JargonWord] = JARGON) -> list[str]:
+    """The switched-off names that no row carries any more.
+
+    An exception that guards nothing looks exactly like one that works, and the row it was
+    written for is now being reported at every page that uses the word. Both entry points ask
+    this first, because a repository names its exceptions once and passes them to whichever of
+    the two reads its text.
+    """
+    return [
+        f'"{name}" is switched off and the dictionary has no such row - '
+        "the exception guards nothing now"
+        for name in sorted(set(allow) - {word.name for word in dictionary})
+    ]
+
+
 #: The pages a jargon check reads unless a repository says otherwise: the Russian edition of
 #: every page. The English edition is left alone - the words of the dictionary are English to
 #: begin with, and there they are the right ones.
@@ -200,11 +237,7 @@ def jargon_problems(
     """
     rows = tuple(dictionary)
     allowed = tuple(allow)
-    problems = [
-        f'"{name}" is switched off and the dictionary has no such row - '
-        "the exception guards nothing now"
-        for name in sorted(set(allowed) - {word.name for word in rows})
-    ]
+    problems = empty_exceptions(allowed, rows)
 
     texts: dict[str, str] = {}
     for path in russian_pages(layout, pages):
@@ -215,6 +248,84 @@ def jargon_problems(
 
     for where, text in texts.items():
         problems += jargon_findings(text, where, allow=allowed, dictionary=rows)
+    return problems
+
+
+#: A Russian letter. One of them in a literal, and a person is meant to read that literal: the
+#: key of a message is Latin, so is the name of a field and the address of a service, and the
+#: English half of a catalog says the same thing in the words the dictionary is about.
+_CYRILLIC = re.compile(r"[а-яёА-ЯЁ]")
+
+#: A `str.format` field: `{path}`, `{count:>3}`, `{}`. What a template leaves for a value to
+#: fill in is not prose, so it is blanked the way backticks are blanked on a page.
+_FIELD = re.compile(r"\{[^{}]*\}")
+
+
+def russian_strings(tree: ast.AST) -> list[tuple[int, str]]:
+    """The string literals of one parsed source that a person reads, with the line each begins on.
+
+    The line is where the LITERAL starts, not where the word sits inside it, and the difference
+    is the reason this is parsed rather than searched: the value and the source are not the same
+    text. An escape is one character in the value and two in the file, and four lines of strings
+    written side by side are one value with no line breaks in it at all. The line a finding names
+    is the line the literal opens on, which is a line a reader can go to.
+    """
+    found = [
+        (node.lineno, node.col_offset, node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and _CYRILLIC.search(node.value)
+    ]
+    return [(line, text) for line, _, text in sorted(found)]
+
+
+def source_findings(
+    source: str,
+    where: str,
+    *,
+    allow: Iterable[str] = (),
+    dictionary: Iterable[JargonWord] = JARGON,
+) -> list[str]:
+    """The jargon of the Russian strings of one source file."""
+    rows = tuple(dictionary)
+    allowed = tuple(allow)
+    problems: list[str] = []
+    for line, text in russian_strings(ast.parse(source)):
+        prose = _FIELD.sub(lambda field: " " * len(field.group(0)), text)
+        for _, word, written in _found(prose, allow=allowed, dictionary=rows):
+            problems.append(f'{where}:{line}: "{written}" is jargon - write {word.instead}')
+    return problems
+
+
+def source_jargon_problems(
+    layout: Layout,
+    files: Iterable[str],
+    *,
+    allow: Iterable[str] = (),
+    dictionary: Iterable[JargonWord] = JARGON,
+) -> list[str]:
+    """Every jargon word of the Russian strings of the sources one repository names.
+
+    files - the sources by path from the root, the way the conventions next door take folders.
+            Which files hold text a person reads is knowledge about the repository: in these
+            three it is one message catalog each, and a guard that went looking for Russian in
+            every source would report the tests, the fixtures and the comments of a generator.
+            A named file that is not there is a finding rather than silence - a catalog that has
+            been renamed leaves this check reading nothing and passing.
+    allow - the rows this repository switches off, by name, exactly as the pages take them.
+    """
+    rows = tuple(dictionary)
+    allowed = tuple(allow)
+    problems = empty_exceptions(allowed, rows)
+    for name in files:
+        path = layout.root / name
+        if not path.is_file():
+            problems.append(f"{name}: the source is named for the jargon check and is not "
+                            "there - has it been renamed?")
+            continue
+        problems += source_findings(path.read_text(encoding="utf-8"), name,
+                                    allow=allowed, dictionary=rows)
     return problems
 
 
@@ -239,25 +350,38 @@ CAUGHT: tuple[tuple[str, str], ...] = (
     ("Скаффолдингом заводят объект.", "скаффолдинг"),
     ("Воркспейсы разложены по дискам.", "воркспейс"),
     ("Воркфлоу-скрипт лежит рядом с исходниками.", "воркфлоу"),
+    ("Дашборды показывают одно и то же дважды.", "дашборд"),
+    ("Бек-энд отвечает медленнее фронта.", "бэкенд"),
+    ("Лаунчером поднимают сервер.", "лаунчер"),
+    ("Мэйнтейнеры читают письма по очереди.", "мейнтейнер"),
+    ("Топ-объекты дерева перечислены ниже.", "топ-объект"),
+    ("Легаси-код переписывают частями.", "легаси"),
 )
 
 #: The sentences that have to stay quiet. Five kinds, and each kind is a way the check could
 #: have been written wrong: a root sitting inside an innocent Russian word, an identifier the
 #: page quotes on purpose, the Latin word the jargon was transliterated from, the Russian the
-#: dictionary itself asks for, and a word the owner allowed. The last two sentences were
+#: dictionary itself asks for, and a word that is allowed to stay. Two of these sentences were
 #: findings until 12 September 2026. Put one of those rows back and the self-check reports
 #: them again.
 QUIET: tuple[str, ...] = (
     "Пингвин отпер шпингалет, пинг прошёл.",
     "Билдер собирает страницу, префикс остаётся.",
     "Фиксация правки и её фиксирование - обычные слова.",
+    "Бэкап уехал на диск, бэк-вокал записали отдельно.",
+    "В топе выдачи чужая страница, и топором её не срубишь.",
+    "Мейнстрим тут ни при чём.",
     "Версия закреплена меткой, проверки прошли, задача конвейера зелёная.",
     "Создание метаданных идёт в рабочую папку.",
+    "Сводка на панели собирается быстрее, чем отвечает серверная часть.",
+    "Программа запуска и сопровождающий живут в разных репозиториях.",
+    "Объект верхнего уровня переписан, унаследованный код остался.",
     "Ставим `пин` и `--as-ci-job` как есть - это имена.",
     "```\nпрогон\n```",
     "Ссылка на [страницу](docs/прогон.ru.md) ведёт куда следует.",
     "Файл прогон.md называется так и никак иначе.",
     "Поле workspace и модуль scaffold написаны латиницей.",
+    "Папка legacy и поле dashboard написаны латиницей.",
     "Фичу отложили до следующей недели.",
     "Смоук-тест после выкладки прошёл.",
 )

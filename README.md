@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.7.1
+pip install git+https://github.com/keyfire/docsguard@v0.8.0
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody
@@ -119,17 +119,30 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   transliterated word that has a Russian one. The dictionary is `JARGON`, one `JargonWord` per
   word: the root it is recognized by, the name a repository switches it off by, and the Russian
   to write instead. A repository that needs a word of its own adds a row. A repository whose
-  subject needs a word the dictionary forbids switches that row off by name. The fifteen words it
+  subject needs a word the dictionary forbids switches that row off by name, and
+  `empty_exceptions` reports an exception that no longer matches any row. The twenty-one words it
   forbids: `пин`, `прогон`, `базлайн`, `хук`, `фолбэк`, `фикс`, `билд`, `дефолт`, `эксепшн`,
-  `апдейт`, `скоуп`, `ворктри`, `скаффолдинг`, `воркспейс`, `воркфлоу`. The list was rewritten on
-  12 September 2026: the owner read it, kept the words that stop him mid-sentence, and added the
-  last three the same day. `jargon_findings` judges one text and quotes the word in the form the
-  page wrote it, which is the form a writer can search for. `russian_pages` collects the pages.
+  `апдейт`, `скоуп`, `ворктри`, `скаффолдинг`, `воркспейс`, `воркфлоу`, `дашборд`, `бэкенд`,
+  `лаунчер`, `мейнтейнер`, `топ-объект`, `легаси`. The list was rewritten on 12 September 2026
+  by reading the pages rather than by theory: a word a reader goes past without translating it
+  left the dictionary, and what stayed is what stops a reader mid-sentence. The last six came
+  from the documentation of the tools a day later. `jargon_findings` judges one text and quotes
+  the word in the form the page wrote it, which is the form a writer can search for.
+  `russian_pages` collects the pages.
   `without_code` blanks out what is not prose: an identifier in backticks, a fenced block, a link
   target, a file name. It blanks in place, so the line numbers hold and `pipeline` stays the name
   of a thing. `jargon_self_check` proves the dictionary on samples before it reads a page. A root
   that has lost a letter finds nothing, and finding nothing reads exactly like a repository in
   order.
+- **Jargon in the sources.** The help of a command and the message it prints go straight to a
+  terminal, and both are written in the sources. `source_jargon_problems` reads the files a
+  repository names, one message catalog each in these three, and judges the string literals that
+  have Cyrillic in them. The English half of a catalog stays as it is, and so do the key above
+  it, the Latin names and the `{path}` a template fills in. `russian_strings` picks the literals
+  out with `ast`, the way the conventions above are read. A search over the text would report
+  `"пин"` on a line that holds `"пин" "гвин"`, and would miss a word spelled across two lines.
+  `source_findings` judges one file. A named source that is not there is a finding of its own: a
+  renamed catalog would otherwise leave the check reading nothing and passing.
 - **`run` and `report`.** `run` calls every check, collects what they find and hands the list
   to `report`, which prints it and answers with the exit code CI reads. A check that raises
   becomes a finding of its own, so a bug in the guard cannot read as "no problems".
