@@ -23,6 +23,15 @@ runner that prints the findings and answers with an exit code.
 """
 
 from .annotations import PitchItem, pitch_problems, pyproject_description, site_description
+from .attribution import (
+    ATTRIBUTION,
+    AttributionTurn,
+    attribution_findings,
+    attribution_problems,
+    attribution_self_check,
+    prose_sources,
+    source_attribution_problems,
+)
 from .claims import Claim, claim_problems, claim_text, claim_texts
 from .checks import (
     image_problems,
@@ -62,6 +71,7 @@ from .layout import Layout, read_text
 from .pages import (
     IMAGE,
     box_headlines,
+    docs_pages,
     front_description,
     headings,
     injected,
@@ -73,22 +83,28 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 __all__ = [
+    "ATTRIBUTION",
     "IMAGE",
     "JARGON",
+    "AttributionTurn",
     "Claim",
     "JargonWord",
     "Layout",
     "PitchItem",
     "__version__",
     "asks_for_text",
+    "attribution_findings",
+    "attribution_problems",
+    "attribution_self_check",
     "box_headlines",
     "claim_problems",
     "claim_text",
     "claim_texts",
     "coverage_problems",
+    "docs_pages",
     "empty_exceptions",
     "encoding_problems",
     "front_description",
@@ -107,6 +123,7 @@ __all__ = [
     "pitch_problems",
     "process_encoding_problems",
     "process_starts",
+    "prose_sources",
     "pyproject_description",
     "python_sources",
     "read_text",
@@ -120,6 +137,7 @@ __all__ = [
     "shadowed_test_problems",
     "site_description",
     "site_pages",
+    "source_attribution_problems",
     "source_findings",
     "source_jargon_problems",
     "text_write_newline_problems",

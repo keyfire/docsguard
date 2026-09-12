@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.9.0
+pip install git+https://github.com/keyfire/docsguard@v0.10.0
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody
@@ -80,9 +80,11 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   `box_headlines` the bold headline of every bullet. `front_description` reads the description
   from the frontmatter, `lede` the first paragraph of prose, `injected` the block a mirroring
   script writes between its markers, `mirror_source` a root document the way a mirrored page
-  carries it. `site_pages` lists the pages the site really publishes. `IMAGE` is the pattern
-  that image links are read with. A repository judging its own images takes the pattern from
-  here and so reads them the way the checks here do.
+  carries it. `site_pages` lists the pages the site really publishes, and `docs_pages` the
+  pages of the documentation folder that match a glob - the Russian edition alone for one
+  check, both editions for the next. `IMAGE` is the pattern that image links are read with. A
+  repository judging its own images takes the pattern from here and so reads them the way the
+  checks here do.
 - **Annotations.** `site_description` and `pyproject_description` read the one-liners that get
   quoted instead of the page: the meta description of the site and the summary line of the
   packaging manifest. `pitch_problems` measures those against the features block and against
@@ -154,6 +156,31 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   `"пин"` on a line that holds `"пин" "гвин"`, and would miss a word spelled across two lines.
   `source_findings` judges one file. A named source that is not there is a finding of its own: a
   renamed catalog would otherwise leave the check reading nothing and passing.
+- **Attribution.** `attribution_problems` reads both editions of a repository's pages and names
+  the sentence that credits a person for a change. These repositories have one author, so a
+  sentence about who asked for something gives the reader nothing to act on, and tells them one
+  thing that is untrue: that the code was written for somebody else. What is caught is a TURN OF
+  PHRASE rather than a word, because an owner here is also a metadata object with attributes and
+  a table of the translation dictionary. A turn is a possessive beside a noun of deciding or
+  asking, or the word beside a verb of speaking or judging. There are four - `owner's decision`,
+  `the owner said`, `решение владельца`, `владелец сказал` - one `AttributionTurn` each in
+  `ATTRIBUTION`. The words that fill a row live in five lists beside it, so adding a verb means
+  adding a word to a list. The gap between the two halves holds a modal, a negation or an adverb
+  and nothing else: "is" and "are" would hand the check every passive sentence in the sources.
+  `attribution_findings` judges one text and quotes the whole turn on one line, even where it
+  wrapped. `attribution_self_check` proves the table on samples before it reads a page, and the
+  samples that have to stay quiet are sentences taken out of these three repositories as they
+  were written.
+- **Attribution in the sources.** The three sentences this was written for lived in the
+  docstrings of one repository's tests, the oldest of them since July, and review had read past
+  all three. `source_attribution_problems` reads the folders a repository names - comments,
+  docstrings and strings alike - with `prose_sources` underneath it listing the files: `*.py` by
+  default, and `*.java` where the comments are Java. A source is read as text rather than
+  parsed, because a comment is the one place no parser looks. It is blanked line by line, where
+  a page is blanked whole: a stray backtick in a comment pairs with the next one further down,
+  and everything between them is blanked as if it were code. That is how one of those three
+  sentences stayed hidden while the other two were found. A named folder that is not there is a
+  finding of its own.
 - **`run` and `report`.** `run` calls every check, collects what they find and hands the list
   to `report`, which prints it and answers with the exit code CI reads. A check that raises
   becomes a finding of its own, so a bug in the guard cannot read as "no problems".
@@ -173,6 +200,12 @@ its own samples in the same run. The words it catches are quoted in backticks ab
 what tells the check they are names here. The guard reads that list against the dictionary both
 ways. A row added or dropped in the code alone fails the run until both editions are edited
 too.
+
+The attribution table reads both editions of this README and proves itself on its own
+samples in the same run. The turns are quoted in backticks above, which is what tells the check
+they are being named rather than written, and the guard reads that list against the table both
+ways. The source half is the one check not pointed at this repository: the samples it proves
+itself on credit a person by construction, so reading them would report its own evidence.
 
 The package keeps the conventions it ships. Its own suite runs `process_encoding_problems` over
 `docsguard`, `tests` and `scripts`, `text_write_newline_problems` over `docsguard` and

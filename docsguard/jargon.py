@@ -41,6 +41,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .layout import Layout, read_text
+from .pages import docs_pages
 
 
 @dataclass(frozen=True)
@@ -187,16 +188,21 @@ def jargon_findings(
             for line, word, written in _found(text, allow=allow, dictionary=dictionary)]
 
 
-def empty_exceptions(allow: Iterable[str], dictionary: Iterable[JargonWord] = JARGON) -> list[str]:
+def empty_exceptions(allow: Iterable[str], dictionary: Iterable[JargonWord] = JARGON,
+                     *, what: str = "dictionary") -> list[str]:
     """The switched-off names that no row carries any more.
 
     An exception that guards nothing looks exactly like one that works, and the row it was
     written for is now being reported at every page that uses the word. Both entry points ask
     this first, because a repository names its exceptions once and passes them to whichever of
     the two reads its text.
+
+    `what` names the table a finding says the row is missing from. The attribution check next
+    door switches its rows off the same way and keeps its rows in a table of its own, and the
+    two are told apart in the finding rather than by a second copy of these four lines.
     """
     return [
-        f'"{name}" is switched off and the dictionary has no such row - '
+        f'"{name}" is switched off and the {what} has no such row - '
         "the exception guards nothing now"
         for name in sorted(set(allow) - {word.name for word in dictionary})
     ]
@@ -210,10 +216,7 @@ RUSSIAN_PAGES = ("*.ru.md",)
 
 def russian_pages(layout: Layout, patterns: Iterable[str] = RUSSIAN_PAGES) -> list[Path]:
     """The Russian pages of a repository, in a stable order."""
-    found: list[Path] = []
-    for pattern in patterns:
-        found.extend(sorted(layout.docs.glob(pattern)))
-    return found
+    return docs_pages(layout, patterns)
 
 
 def jargon_problems(
