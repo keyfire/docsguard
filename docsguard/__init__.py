@@ -83,7 +83,7 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 __all__ = [
     "ATTRIBUTION",
