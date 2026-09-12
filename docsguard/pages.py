@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 from .layout import Layout, read_text
@@ -125,6 +126,20 @@ def mirror_source(layout: Layout, name: str) -> str:
     if first is not None and lines[first].startswith("# "):
         del lines[first]
     return "\n".join(lines).strip()
+
+
+def docs_pages(layout: Layout, patterns: Iterable[str] = ("*.md",)) -> list[Path]:
+    """The pages of a repository that match one of the patterns, in a stable order.
+
+    One walker for every check that reads a folder of pages instead of a page by name. The
+    checks disagree only on which pages they want: one reads the Russian edition alone, the
+    next reads both, and a repository whose documentation sits in subfolders passes a pattern
+    of its own. A file matched by two patterns is listed once.
+    """
+    found: list[Path] = []
+    for pattern in patterns:
+        found.extend(sorted(layout.docs.glob(pattern)))
+    return sorted(set(found))
 
 
 def site_pages(layout: Layout) -> list[Path]:

@@ -12,6 +12,10 @@ What stays here is what is about this repository. Its pages ARE its two READMEs 
 `__all__` declares. The judging comes from the package itself, which is the point: the guard
 that fails here fails in every consumer the same way.
 
+One check is deliberately half of itself. The attribution table proves itself on sentences that
+credit a person, so the sources holding those sentences are the one place its source half is not
+pointed at.
+
 Run: `python scripts/check_docs.py`; the exit code is what CI reads.
 """
 
@@ -28,8 +32,11 @@ sys.path.insert(0, str(ROOT))
 
 import docsguard  # noqa: E402
 from docsguard import (  # noqa: E402
+    ATTRIBUTION,
     JARGON,
     Layout,
+    attribution_problems,
+    attribution_self_check,
     coverage_problems,
     jargon_problems,
     jargon_self_check,
@@ -62,6 +69,12 @@ _INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(
 #: hyphen of `топ-объект` allowed between them and nothing else. `allow=("хук",)` is a call
 #: rather than a word, and this reads past it.
 _JARGON_WORD = re.compile(r"`([а-яё]+(?:-[а-яё]+)*)`")
+
+#: A turn of the attribution table the way an edition quotes it: backticks around two or more
+#: plain words. Everything else the section quotes has something in it that a sentence has not
+#: - a capital letter, an underscore, a bracket, an equals sign - so the shape is the whole
+#: test. A name in one word could not be told from a public name, and none of the turns is one.
+_TURN = re.compile(r"`([a-zа-яё']+(?: [a-zа-яё']+)+)`")
 
 
 def public_names() -> set[str]:
@@ -138,6 +151,41 @@ def check_jargon_list() -> list[str]:
     return problems
 
 
+def check_attribution_list() -> list[str]:
+    """Both editions name every turn the attribution table judges, and neither names a ghost.
+
+    The same copy that drifts for the dictionary, for the same reason: the turns are written
+    out in the README so that a writer can read what the guard will say before it says it.
+    """
+    problems: list[str] = []
+    for name, heading in SURFACE:
+        body = section_body(LAYOUT, name, heading)
+        if body is None:
+            continue  # check_surface has already said where the section went.
+        problems += coverage_problems(
+            {turn.name for turn in ATTRIBUTION},
+            set(_TURN.findall(body)),
+            what="turn of phrase",
+            where=f"{name} / {heading}",
+        )
+    return problems
+
+
+def check_attribution() -> list[str]:
+    """No edition credits a person for a change, and the table that says so is awake.
+
+    The pages of both editions are read, which is where this parts company with the jargon
+    check next door: a sentence naming who asked for something is as easy to write in English
+    as in Russian, and two of the three that started this were English.
+
+    The sources of this repository are NOT read, and that is not an oversight. The samples the
+    table proves itself on are credited sentences by construction, they live in `attribution.py`
+    and in the suite, and a check reading them would report its own evidence. Every consumer
+    points the source half at its own folders, where no such samples live.
+    """
+    return attribution_self_check() + attribution_problems(LAYOUT)
+
+
 def check_jargon() -> list[str]:
     """The Russian edition is written in Russian, and the dictionary that says so is awake.
 
@@ -150,7 +198,8 @@ def check_jargon() -> list[str]:
     return jargon_self_check() + jargon_problems(LAYOUT)
 
 
-CHECKS = (check_surface, check_install, check_jargon_list, check_jargon)
+CHECKS = (check_surface, check_install, check_jargon_list, check_jargon,
+          check_attribution_list, check_attribution)
 
 
 def problems() -> list[str]:
