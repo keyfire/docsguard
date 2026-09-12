@@ -53,6 +53,10 @@ class JargonWord:
 #: The dictionary. Rows in the order of the writing rules these repositories keep, so that the
 #: two can be read side by side. A root with a blanket `\w*` is a root that grows into no other
 #: Russian word; the rest carry their endings, because "пин" with a free tail eats "пингвин".
+#:
+#: The dictionary got shorter on 12 September 2026. The owner read it and kept the words that
+#: stop him mid-sentence. Eleven others, "фича" and "джоба" among them, he reads without
+#: translating, so their rows are gone. Putting one back takes the same decision from him.
 JARGON: tuple[JargonWord, ...] = (
     JargonWord(
         "пин",
@@ -67,27 +71,15 @@ JARGON: tuple[JargonWord, ...] = (
         r"|прогоня(?:ть|ет|ют|ем|ешь|ется|ются|л|ла|ли|лся)",
         "запуск, проверка (о CI - проверки, сборка на CI)",
     ),
-    JargonWord("джоба", r"джоб(?:а|ы|у|е|ой|ам|ами|ах|ов)?",
-               "задача конвейера (имя самой задачи остаётся как есть)"),
-    JargonWord("пайплайн", r"пайплайн\w*", "конвейер"),
     JargonWord("базлайн", r"(?:баз|бейз)лайн\w*", "список принятых замечаний"),
-    JargonWord("чекаут", r"чекаут\w*", "рабочая копия"),
     JargonWord("хук", r"хук(?:а|у|е|ом|и|ов|ам|ами|ах)?", "обработчик, перехватчик"),
-    JargonWord("раннер", r"ран{1,2}ер\w*", "исполнитель"),
-    JargonWord("таймаут", r"тайм-?аут(?:а|у|е|ом|ы|ов|ам|ами|ах)?", "срок ожидания"),
     JargonWord("фолбэк", r"фол{1,2}б[эе]к\w*", "запасной путь"),
     JargonWord("фикс", r"фикс(?:а|у|е|ом|ы|ов|ам|ами|ах)?|(?:за|по)?фиксить", "исправление"),
-    JargonWord("фича", r"фич(?:а|и|у|е|ей|ам|ами|ах)?", "возможность"),
     JargonWord("билд", r"билд(?:а|у|е|ом|ы|ов|ам|ами|ах)?|билдить", "сборка"),
-    JargonWord("мёржить", r"(?:с|за|пере)?м[её]р(?:ж|дж)\w*", "сливать, слить"),
-    JargonWord("ребейз", r"ребе[йи]з\w*|ребэйз\w*", "перенос ветки"),
     JargonWord("дефолт", r"дефолт\w*", "значение по умолчанию, по умолчанию"),
     JargonWord("эксепшн", r"эксепше?н\w*", "исключение"),
-    JargonWord("варнинг", r"варнинг\w*", "предупреждение"),
     JargonWord("апдейт", r"ап-?дейт\w*", "обновление"),
-    JargonWord("кейс", r"кейс(?:а|у|е|ом|ы|ов|ам|ами|ах)?", "случай"),
     JargonWord("скоуп", r"скоуп\w*", "область"),
-    JargonWord("смоук", r"смоук\w*", "быстрая проверка"),
     JargonWord("ворктри", r"ворктри\w*", "рабочее дерево (сама команда остаётся `git worktree`)"),
 )
 
@@ -123,7 +115,7 @@ def _reader(root: str) -> re.Pattern[str]:
     """The compiled reader of one root, held between the edges of a word.
 
     Both edges are a letter test rather than `\\b`, and that is what makes "шпингалет" silent
-    and "смоук-тест" a finding: a letter before the root means the root is somebody else's
+    and "билд-сервер" a finding: a letter before the root means the root is somebody else's
     tail, while a hyphen after it is simply where the word ends.
     """
     return re.compile(rf"(?<!\w)(?:{root})(?!\w)", re.IGNORECASE)
@@ -225,32 +217,23 @@ CAUGHT: tuple[tuple[str, str], ...] = (
     ("Тег, который они пинуют, устарел.", "пин"),
     ("Красный прогон никто не читает.", "прогон"),
     ("Правку прогнали по трём репозиториям.", "прогон"),
-    ("Джобы конвейера встали в очередь.", "джоба"),
-    ("Пайплайна на этой ветке нет.", "пайплайн"),
     ("Базлайн пополнился за неделю.", "базлайн"),
-    ("Чекаут делают заново.", "чекаут"),
     ("Хуки стоят перед коммитом.", "хук"),
-    ("Раннеры заняты.", "раннер"),
-    ("Тайм-аут вышел.", "таймаут"),
     ("Фолбэк на прежний адрес.", "фолбэк"),
     ("Фикс уехал в релиз.", "фикс"),
-    ("Фичу отложили.", "фича"),
-    ("Билд собирается заново.", "билд"),
-    ("Ветку смёржили вечером.", "мёржить"),
-    ("Ребейзить поздно.", "ребейз"),
+    ("Билд-сервер снова занят.", "билд"),
     ("По дефолту стоит ноль.", "дефолт"),
     ("Эксепшен доходит до пользователя.", "эксепшн"),
-    ("Варнинги никто не смотрит.", "варнинг"),
     ("Апдейтить придётся оба.", "апдейт"),
-    ("Кейсы перечислены ниже.", "кейс"),
     ("Скоуп правки шире.", "скоуп"),
-    ("Смоук-тест после выкладки.", "смоук"),
     ("Ворктри на каждую задачу.", "ворктри"),
 )
 
-#: The sentences that have to stay quiet. Three kinds, and each kind is a way the check could
+#: The sentences that have to stay quiet. Four kinds, and each kind is a way the check could
 #: have been written wrong: a root sitting inside an innocent Russian word, an identifier the
-#: page quotes on purpose, and the Russian the dictionary itself asks for.
+#: page quotes on purpose, the Russian the dictionary itself asks for, and a word the owner
+#: allowed. The last two sentences were findings until 12 September 2026. Put one of those rows
+#: back and the self-check reports them again.
 QUIET: tuple[str, ...] = (
     "Пингвин отпер шпингалет, пинг прошёл.",
     "Билдер собирает страницу, префикс остаётся.",
@@ -260,6 +243,8 @@ QUIET: tuple[str, ...] = (
     "```\nпрогон\n```",
     "Ссылка на [страницу](docs/прогон.ru.md) ведёт куда следует.",
     "Файл прогон.md называется так и никак иначе.",
+    "Фичу отложили до следующей недели.",
+    "Смоук-тест после выкладки прошёл.",
 )
 
 

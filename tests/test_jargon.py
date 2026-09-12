@@ -68,6 +68,24 @@ def test_a_root_inside_another_word_is_not_a_finding(innocent):
     assert jargon_findings(innocent, "index.ru.md") == []
 
 
+@pytest.mark.parametrize("allowed", [
+    "Фичу отложили до следующей недели.",
+    "Джобы конвейера встали в очередь.",
+    "Пайплайна на этой ветке нет.",
+    "Чекаут делают заново.",
+    "Раннеры заняты.",
+    "Тайм-аут вышел.",
+    "Ветку смёржили вечером.",
+    "Ребейзить поздно.",
+    "Варнинги никто не смотрит.",
+    "Кейсы перечислены ниже.",
+    "Смоук-тест после выкладки прошёл.",
+])
+def test_a_word_the_owner_allowed_is_silence(allowed):
+    """Eleven rows went on 12 September 2026, and every one of them used to be a finding."""
+    assert jargon_findings(allowed, "index.ru.md") == []
+
+
 @pytest.mark.parametrize("quoted", [
     "Ключ `прогон` называется так и никак иначе.",
     "```\nпрогон\n```",
