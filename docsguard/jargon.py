@@ -57,6 +57,12 @@ class JargonWord:
 #: The dictionary got shorter on 12 September 2026. The owner read it and kept the words that
 #: stop him mid-sentence. Eleven others, "фича" and "джоба" among them, he reads without
 #: translating, so their rows are gone. Putting one back takes the same decision from him.
+#:
+#: Three rows joined it the same day. "скаффолдинг" is what this tooling called the part of the
+#: engine that makes metadata, until the owner named that part in Russian. "воркспейс" and
+#: "воркфлоу" are borrowed together and mean nothing like each other, a folder against a
+#: process, so they are two rows and the Russian each one asks for is its own. The last root
+#: carries no endings at all: the word never declines.
 JARGON: tuple[JargonWord, ...] = (
     JargonWord(
         "пин",
@@ -81,6 +87,9 @@ JARGON: tuple[JargonWord, ...] = (
     JargonWord("апдейт", r"ап-?дейт\w*", "обновление"),
     JargonWord("скоуп", r"скоуп\w*", "область"),
     JargonWord("ворктри", r"ворктри\w*", "рабочее дерево (сама команда остаётся `git worktree`)"),
+    JargonWord("скаффолдинг", r"скаффолдинг\w*", "создание метаданных"),
+    JargonWord("воркспейс", r"воркспейс\w*", "рабочая папка"),
+    JargonWord("воркфлоу", r"воркфлоу", "процесс, файл процесса"),
 )
 
 #: The spans of a page that are identifiers rather than prose: a fenced block, an inline code
@@ -227,22 +236,28 @@ CAUGHT: tuple[tuple[str, str], ...] = (
     ("Апдейтить придётся оба.", "апдейт"),
     ("Скоуп правки шире.", "скоуп"),
     ("Ворктри на каждую задачу.", "ворктри"),
+    ("Скаффолдингом заводят объект.", "скаффолдинг"),
+    ("Воркспейсы разложены по дискам.", "воркспейс"),
+    ("Воркфлоу-скрипт лежит рядом с исходниками.", "воркфлоу"),
 )
 
-#: The sentences that have to stay quiet. Four kinds, and each kind is a way the check could
+#: The sentences that have to stay quiet. Five kinds, and each kind is a way the check could
 #: have been written wrong: a root sitting inside an innocent Russian word, an identifier the
-#: page quotes on purpose, the Russian the dictionary itself asks for, and a word the owner
-#: allowed. The last two sentences were findings until 12 September 2026. Put one of those rows
-#: back and the self-check reports them again.
+#: page quotes on purpose, the Latin word the jargon was transliterated from, the Russian the
+#: dictionary itself asks for, and a word the owner allowed. The last two sentences were
+#: findings until 12 September 2026. Put one of those rows back and the self-check reports
+#: them again.
 QUIET: tuple[str, ...] = (
     "Пингвин отпер шпингалет, пинг прошёл.",
     "Билдер собирает страницу, префикс остаётся.",
     "Фиксация правки и её фиксирование - обычные слова.",
     "Версия закреплена меткой, проверки прошли, задача конвейера зелёная.",
+    "Создание метаданных идёт в рабочую папку.",
     "Ставим `пин` и `--as-ci-job` как есть - это имена.",
     "```\nпрогон\n```",
     "Ссылка на [страницу](docs/прогон.ru.md) ведёт куда следует.",
     "Файл прогон.md называется так и никак иначе.",
+    "Поле workspace и модуль scaffold написаны латиницей.",
     "Фичу отложили до следующей недели.",
     "Смоук-тест после выкладки прошёл.",
 )
