@@ -42,6 +42,15 @@ from .conventions import (
     writes_text,
 )
 from .coverage import coverage_problems
+from .jargon import (
+    JARGON,
+    JargonWord,
+    jargon_findings,
+    jargon_problems,
+    jargon_self_check,
+    russian_pages,
+    without_code,
+)
 from .layout import Layout
 from .pages import (
     IMAGE,
@@ -57,11 +66,13 @@ from .pages import (
 )
 from .runner import report, run
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "IMAGE",
+    "JARGON",
     "Claim",
+    "JargonWord",
     "Layout",
     "PitchItem",
     "__version__",
@@ -77,6 +88,9 @@ __all__ = [
     "image_problems",
     "injected",
     "injection_problems",
+    "jargon_findings",
+    "jargon_problems",
+    "jargon_self_check",
     "lede",
     "mirror_problems",
     "mirror_source",
@@ -89,11 +103,13 @@ __all__ = [
     "python_sources",
     "report",
     "run",
+    "russian_pages",
     "section_body",
     "site_description",
     "site_pages",
     "text_write_newline_problems",
     "text_writes",
     "translation_problems",
+    "without_code",
     "writes_text",
 ]
