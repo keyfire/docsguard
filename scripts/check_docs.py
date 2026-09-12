@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 import docsguard  # noqa: E402
 from docsguard import (  # noqa: E402
+    JARGON,
     Layout,
     coverage_problems,
     jargon_problems,
@@ -56,6 +57,10 @@ NOT_THE_SURFACE = frozenset({"ast", "pipeline"})
 
 #: The install line a consumer copies: the URL and what it is pinned to.
 _INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(\S+)")
+
+#: A dictionary word the way an edition quotes it: backticks around Russian letters and nothing
+#: besides them. `allow=("хук",)` is a call rather than a word, and this reads past it.
+_JARGON_WORD = re.compile(r"`([а-яё]+)`")
 
 
 def public_names() -> set[str]:
@@ -111,6 +116,27 @@ def check_install() -> list[str]:
     return problems
 
 
+def check_jargon_list() -> list[str]:
+    """Both editions name every word of the dictionary, and neither names a word that is gone.
+
+    The words are a copy of `JARGON`, and a copy drifts - the defect this package was written
+    for. The owner shortened the dictionary by eleven rows on 12 September 2026, and a README
+    left alone would have gone on forbidding words that are allowed now.
+    """
+    problems: list[str] = []
+    for name, heading in SURFACE:
+        body = section_body(LAYOUT, name, heading)
+        if body is None:
+            continue  # check_surface has already said where the section went.
+        problems += coverage_problems(
+            {word.name for word in JARGON},
+            set(_JARGON_WORD.findall(body)),
+            what="jargon word",
+            where=f"{name} / {heading}",
+        )
+    return problems
+
+
 def check_jargon() -> list[str]:
     """The Russian edition is written in Russian, and the dictionary that says so is awake.
 
@@ -123,7 +149,7 @@ def check_jargon() -> list[str]:
     return jargon_self_check() + jargon_problems(LAYOUT)
 
 
-CHECKS = (check_surface, check_install, check_jargon)
+CHECKS = (check_surface, check_install, check_jargon_list, check_jargon)
 
 
 def problems() -> list[str]:

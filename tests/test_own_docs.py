@@ -132,6 +132,18 @@ def test_a_renamed_section_is_a_finding_rather_than_silence(sabotage, guard):
     assert "What is in it" in problems[0]
 
 
+def test_a_dictionary_word_dropped_from_an_edition_is_found(sabotage, guard):
+    """The list of words in the README is a copy of the dictionary, and a copy drifts."""
+    sabotage("README.md", "`ворктри`", "`ребейз`")
+
+    problems = guard.problems()
+
+    assert len(problems) == 2
+    assert any("ворктри" in problem and "named nowhere here" in problem
+               for problem in problems)
+    assert any("ребейз" in problem and "no such thing" in problem for problem in problems)
+
+
 def test_jargon_that_crept_into_the_russian_edition_is_found(sabotage, guard):
     """The dictionary reads the Russian edition of this repository, not a consumer's alone."""
     sabotage("README.ru.md", "Сторож работает на CI", "Сторож работает в прогонах CI")
