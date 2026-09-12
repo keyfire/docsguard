@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.7.0
+pip install git+https://github.com/keyfire/docsguard@v0.7.1
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody
@@ -119,16 +119,17 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   transliterated word that has a Russian one. The dictionary is `JARGON`, one `JargonWord` per
   word: the root it is recognized by, the name a repository switches it off by, and the Russian
   to write instead. A repository that needs a word of its own adds a row. A repository whose
-  subject needs a word the dictionary forbids switches that row off by name. The twelve words it
+  subject needs a word the dictionary forbids switches that row off by name. The fifteen words it
   forbids: `пин`, `прогон`, `базлайн`, `хук`, `фолбэк`, `фикс`, `билд`, `дефолт`, `эксепшн`,
-  `апдейт`, `скоуп`, `ворктри`. Eleven more went on 12 September 2026, when the owner read the
-  list and kept the ones that stop him mid-sentence. `jargon_findings` judges one text and
-  quotes the word in the form the page wrote it, which is the form a writer can search for.
-  `russian_pages` collects the pages. `without_code` blanks out what is not prose: an identifier
-  in backticks, a fenced block, a link target, a file name. It blanks in place, so the line
-  numbers hold and `pipeline` stays the name of a thing. `jargon_self_check` proves the
-  dictionary on samples before it reads a page. A root that has lost a letter finds nothing, and
-  finding nothing reads exactly like a repository in order.
+  `апдейт`, `скоуп`, `ворктри`, `скаффолдинг`, `воркспейс`, `воркфлоу`. The list was rewritten on
+  12 September 2026: the owner read it, kept the words that stop him mid-sentence, and added the
+  last three the same day. `jargon_findings` judges one text and quotes the word in the form the
+  page wrote it, which is the form a writer can search for. `russian_pages` collects the pages.
+  `without_code` blanks out what is not prose: an identifier in backticks, a fenced block, a link
+  target, a file name. It blanks in place, so the line numbers hold and `pipeline` stays the name
+  of a thing. `jargon_self_check` proves the dictionary on samples before it reads a page. A root
+  that has lost a letter finds nothing, and finding nothing reads exactly like a repository in
+  order.
 - **`run` and `report`.** `run` calls every check, collects what they find and hands the list
   to `report`, which prints it and answers with the exit code CI reads. A check that raises
   becomes a finding of its own, so a bug in the guard cannot read as "no problems".

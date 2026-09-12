@@ -86,6 +86,30 @@ def test_a_word_the_owner_allowed_is_silence(allowed):
     assert jargon_findings(allowed, "index.ru.md") == []
 
 
+@pytest.mark.parametrize("written, instead", [
+    ("Скаффолдинг завёл объект в дереве метаданных.", "создание метаданных"),
+    ("Скаффолдингом заводят и форму, и маршрут.", "создание метаданных"),
+    ("Воркспейс переехал на другой диск.", "рабочая папка"),
+    ("Воркфлоу не склоняется, и это его не спасает.", "процесс, файл процесса"),
+])
+def test_the_words_added_on_12_september_are_found(written, instead):
+    """Three rows joined the dictionary that day, and each one offers its own Russian."""
+    found = jargon_findings(written, "index.ru.md")
+
+    assert len(found) == 1 and instead in found[0]
+
+
+@pytest.mark.parametrize("latin", [
+    "Модуль xbsl.scaffold заводит объект.",
+    "Поле workspace в launch.json указывает на папку.",
+    "Сервер читает server.workspace при старте.",
+    "Скрипт workflow лежит рядом с исходниками.",
+])
+def test_the_latin_name_the_word_came_from_is_silence(latin):
+    """A jargon word is Russian letters. Its Latin original is the name of a thing."""
+    assert jargon_findings(latin, "index.ru.md") == []
+
+
 @pytest.mark.parametrize("quoted", [
     "Ключ `прогон` называется так и никак иначе.",
     "```\nпрогон\n```",
