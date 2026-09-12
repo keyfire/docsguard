@@ -102,8 +102,8 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   same file. Both directions are judged here as well. An empty set on the sources side is a
   finding of its own, because a reader that has stopped finding anything would otherwise pass
   in silence.
-- **Conventions of the sources.** Two rules that no test of a feature would ever notice. Both
-  are read with `ast`, and both leave the list of folders to the consumer.
+- **Conventions of the sources.** Three rules that no test of a feature would ever notice. All
+  three are read with `ast`, and all three leave the list of folders to the consumer.
   - `process_encoding_problems` watches the encoding of a started process, with
     `python_sources`, `process_starts`, `asks_for_text` and `encoding_problems` underneath it.
     A process whose output is read as text has to name `encoding="utf-8"`. Otherwise the output
@@ -119,6 +119,13 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
     hides it, and on a machine without that setting the whole file goes to a public repository
     as one change of line endings. This rule takes a shorter list of folders than the process
     one: what a test writes goes to a temporary directory and outlives nothing.
+  - `shadowed_test_problems` watches the NAME of a test, with `shadowed_definitions` and
+    `shadowed_problems` underneath it. A test that arrives under the name of an existing one
+    takes its place. Python keeps the last definition, pytest collects what the module ended up
+    with, and the number of tests goes UP, because the newcomer was added. Nothing in the run
+    says the older test has stopped running. The finding names the line of the newcomer, which
+    is the definition to rename. Every namespace is judged on its own, so two classes are still
+    allowed a method of the same name.
 - **Jargon.** `jargon_problems` reads the Russian pages of a repository and names the
   transliterated word that has a Russian one. The dictionary is `JARGON`, one `JargonWord` per
   word: the root it is recognized by, the name a repository switches it off by, and the Russian
@@ -168,8 +175,8 @@ ways. A row added or dropped in the code alone fails the run until both editions
 too.
 
 The package keeps the conventions it ships. Its own suite runs `process_encoding_problems` over
-`docsguard`, `tests` and `scripts`, and `text_write_newline_problems` over `docsguard` and
-`scripts`, the two whose writes outlive the run.
+`docsguard`, `tests` and `scripts`, `text_write_newline_problems` over `docsguard` and
+`scripts`, the two whose writes outlive the run, and `shadowed_test_problems` over `tests`.
 
 The gap this was written for was the package's own. A function lived here and was named in no
 edition of the README, while three repositories were installing the package to be told about
