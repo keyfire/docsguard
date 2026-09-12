@@ -121,8 +121,8 @@ def check_jargon_list() -> list[str]:
     """Both editions name every word of the dictionary, and neither names a word that is gone.
 
     The words are a copy of `JARGON`, and a copy drifts - the defect this package was written
-    for. The owner shortened the dictionary by eleven rows on 12 September 2026, and a README
-    left alone would have gone on forbidding words that are allowed now.
+    for. The dictionary lost eleven rows on 12 September 2026, and a README left alone would
+    have gone on forbidding words that are allowed now.
     """
     problems: list[str] = []
     for name, heading in SURFACE:

@@ -89,7 +89,7 @@ def test_a_root_inside_another_word_is_not_a_finding(innocent):
     "Кейсы перечислены ниже.",
     "Смоук-тест после выкладки прошёл.",
 ])
-def test_a_word_the_owner_allowed_is_silence(allowed):
+def test_a_word_that_is_allowed_now_is_silence(allowed):
     """Eleven rows went on 12 September 2026, and every one of them used to be a finding."""
     assert jargon_findings(allowed, "index.ru.md") == []
 

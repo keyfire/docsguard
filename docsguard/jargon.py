@@ -63,12 +63,13 @@ class JargonWord:
 #: two can be read side by side. A root with a blanket `\w*` is a root that grows into no other
 #: Russian word; the rest carry their endings, because "пин" with a free tail eats "пингвин".
 #:
-#: The dictionary got shorter on 12 September 2026. The owner read it and kept the words that
-#: stop him mid-sentence. Eleven others, "фича" and "джоба" among them, he reads without
-#: translating, so their rows are gone. Putting one back takes the same decision from him.
+#: The dictionary got shorter on 12 September 2026, and it was shortened by reading rather than
+#: by argument: what stayed are the words that stop a reader mid-sentence. Eleven others, "фича"
+#: and "джоба" among them, are read straight past, so their rows are gone. Putting a row back
+#: takes a reading of the same kind.
 #:
 #: Three rows joined it the same day. "скаффолдинг" is what this tooling called the part of the
-#: engine that makes metadata, until the owner named that part in Russian. "воркспейс" and
+#: engine that makes metadata, until that part got a Russian name. "воркспейс" and
 #: "воркфлоу" are borrowed together and mean nothing like each other, a folder against a
 #: process, so they are two rows and the Russian each one asks for is its own. The last root
 #: carries no endings at all: the word never declines.
@@ -360,7 +361,7 @@ CAUGHT: tuple[tuple[str, str], ...] = (
 #: The sentences that have to stay quiet. Five kinds, and each kind is a way the check could
 #: have been written wrong: a root sitting inside an innocent Russian word, an identifier the
 #: page quotes on purpose, the Latin word the jargon was transliterated from, the Russian the
-#: dictionary itself asks for, and a word the owner allowed. Two of these sentences were
+#: dictionary itself asks for, and a word that is allowed to stay. Two of these sentences were
 #: findings until 12 September 2026. Put one of those rows back and the self-check reports
 #: them again.
 QUIET: tuple[str, ...] = (

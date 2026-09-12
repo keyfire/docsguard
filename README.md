@@ -123,10 +123,12 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   `empty_exceptions` reports an exception that no longer matches any row. The twenty-one words it
   forbids: `пин`, `прогон`, `базлайн`, `хук`, `фолбэк`, `фикс`, `билд`, `дефолт`, `эксепшн`,
   `апдейт`, `скоуп`, `ворктри`, `скаффолдинг`, `воркспейс`, `воркфлоу`, `дашборд`, `бэкенд`,
-  `лаунчер`, `мейнтейнер`, `топ-объект`, `легаси`. The owner rewrote the list on 12 September
-  2026 and kept the words that stop him mid-sentence. The last six came from the documentation
-  of the tools a day later. `jargon_findings` judges one text and quotes the word in the form the
-  page wrote it, which is the form a writer can search for. `russian_pages` collects the pages.
+  `лаунчер`, `мейнтейнер`, `топ-объект`, `легаси`. The list was rewritten on 12 September 2026
+  by reading the pages rather than by theory: a word a reader goes past without translating it
+  left the dictionary, and what stayed is what stops a reader mid-sentence. The last six came
+  from the documentation of the tools a day later. `jargon_findings` judges one text and quotes
+  the word in the form the page wrote it, which is the form a writer can search for.
+  `russian_pages` collects the pages.
   `without_code` blanks out what is not prose: an identifier in backticks, a fenced block, a link
   target, a file name. It blanks in place, so the line numbers hold and `pipeline` stays the name
   of a thing. `jargon_self_check` proves the dictionary on samples before it reads a page. A root
