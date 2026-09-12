@@ -23,7 +23,7 @@ import fnmatch
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 
 @dataclass(frozen=True)
@@ -60,7 +60,7 @@ def claim_text(layout: Layout, where: str) -> str | None:
     else:
         path = layout.root / where
     try:
-        return path.read_text(encoding="utf-8")
+        return read_text(path)
     except FileNotFoundError:
         return None
 
@@ -90,12 +90,12 @@ def claim_texts(
         for path in sorted(layout.docs.glob(pattern)):
             if any(fnmatch.fnmatch(path.name, rule) for rule in skip):
                 continue
-            texts[f"docs/{path.name}"] = path.read_text(encoding="utf-8")
+            texts[f"docs/{path.name}"] = read_text(path)
     for name in documents:
         texts[name] = layout.document(name)
     for pattern in sources:
         for path in sorted(layout.root.glob(pattern)):
-            texts[path.relative_to(layout.root).as_posix()] = path.read_text(encoding="utf-8")
+            texts[path.relative_to(layout.root).as_posix()] = read_text(path)
     return texts
 
 

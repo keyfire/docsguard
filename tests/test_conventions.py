@@ -1,12 +1,14 @@
-"""The two conventions of the sources - the shapes they are written in, and this package.
+"""The three conventions of the sources - the shapes they are written in, and this package.
 
-Both rules came from one repository and belong to none. Every repository of this family starts
-processes and reads them as text, with the same silent failure waiting: the output decoded with
-the code page of the console, the Russian names coming back as replacement characters, the text
-lost, and the exit code still saying the run went well. Every one of them writes pages from
-Python too, and a text file written without naming its newline takes the platform's line ending
-- a page rewritten on Windows comes back with every line changed, which a checkout with
-`core.autocrlf=input` hides right up until the machine that has not got the setting.
+All three rules came from one repository and belong to none. Every repository of this family
+starts processes and reads them as text, with the same silent failure waiting: the output
+decoded with the code page of the console, the Russian names coming back as replacement
+characters, the text lost, and the exit code still saying the run went well. Every one of them
+writes pages from Python too, and a text file written without naming its newline takes the
+platform's line ending - a page rewritten on Windows comes back with every line changed, which
+a checkout with `core.autocrlf=input` hides right up until the machine that has not got the
+setting. And every one of them writes tests, where one name used twice retires the older of
+the two without saying so.
 
 The provocations are here rather than in a consumer, because they are about the READER: the
 shape it has to see through, the shape it must leave alone, and the shape that started all of
@@ -15,6 +17,7 @@ past.
 """
 
 import ast
+import codecs
 from pathlib import Path
 
 import pytest
@@ -26,6 +29,9 @@ from docsguard import (
     process_encoding_problems,
     process_starts,
     python_sources,
+    shadowed_definitions,
+    shadowed_problems,
+    shadowed_test_problems,
     text_write_newline_problems,
 )
 
@@ -36,6 +42,8 @@ FOLDERS = ("docsguard", "tests", "scripts")
 #: The folders of the newline convention - the code whose writes OUTLIVE the run. A test writes
 #: into a temporary directory that is gone when the run ends, so it is not among them.
 WRITING_FOLDERS = ("docsguard", "scripts")
+#: The folders of the test-name convention: the ones pytest collects tests from.
+TEST_FOLDERS = ("tests",)
 
 
 def parsed(source: str) -> ast.AST:
@@ -204,25 +212,97 @@ def test_the_writes_reader_finds_the_calls_it_is_meant_to_judge(tmp_path):
     assert "src/offender.py:1" in problems[0]
 
 
-def test_no_test_module_defines_the_same_name_twice():
-    """A test shadowed by a namesake is a test that silently stopped running.
+def test_a_test_replaced_by_a_namesake_is_caught():
+    """The failure this rule came from: one name used twice, and the older test is gone.
 
-    Python keeps the last definition, pytest collects what the module ends up with, and the
+    Python keeps the last definition, pytest collects what the module ended up with, and the
     count goes UP because the newcomer was added - so nothing about the run says a test was
-    lost. It happened here while this very file was being written: the newline convention
-    arrived with a finding-names-the-line test, the process convention already had one under
-    exactly that name, and the older one was gone without a word.
-
-    Local on purpose: three repositories have the same hazard, and moving the reading into the
-    package's own surface is a change of its own.
+    lost. It happened in this very file: the newline convention arrived with a
+    finding-names-the-line test, the process convention already had one under exactly that
+    name, and the older one went without a word.
     """
-    shadowed = []
-    for path in sorted((ROOT / "tests").rglob("*.py")):
-        names = [node.name
-                 for node in ast.parse(path.read_text(encoding="utf-8")).body
-                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                 and node.name.startswith("test_")]
-        shadowed += [f"{path.name}: {name} is defined more than once"
-                     for name in sorted({name for name in names if names.count(name) > 1})]
+    source = "def test_one():\n    pass\n\n\ndef test_one():\n    pass\n"
 
-    assert shadowed == []
+    assert shadowed_problems(source, "twice.py") == [
+        "twice.py:5: test_one is defined again here - the earlier test of that name has "
+        "stopped running"
+    ]
+
+
+def test_the_line_named_is_the_newcomer_rather_than_the_test_it_replaced():
+    """The first definition still runs. What has to be renamed is the one that arrived."""
+    source = "def test_one():\n    pass\n\n\ndef test_one():\n    pass\n"
+
+    assert shadowed_definitions(parsed(source)) == [(5, "test_one")]
+
+
+def test_two_classes_are_allowed_a_method_of_the_same_name():
+    """Each namespace is judged on its own, and neither of these takes anything from anybody."""
+    source = ("class TestOne:\n    def test_same(self):\n        pass\n\n\n"
+              "class TestTwo:\n    def test_same(self):\n        pass\n")
+
+    assert shadowed_problems(source, "classes.py") == []
+
+
+def test_a_name_used_twice_inside_one_class_is_caught():
+    """A method replaced by a namesake loses a test exactly the way a function does."""
+    source = ("class TestOne:\n    def test_same(self):\n        pass\n\n"
+              "    def test_same(self):\n        pass\n")
+
+    assert len(shadowed_problems(source, "inside.py")) == 1
+
+
+def test_something_that_is_not_collected_may_be_defined_twice():
+    """Only what pytest runs is judged: a helper rewritten is between an author and a review."""
+    source = "def helper():\n    pass\n\n\ndef helper():\n    pass\n"
+
+    assert shadowed_problems(source, "helper.py") == []
+
+
+def test_the_package_holds_itself_to_the_test_name_convention():
+    """The rule this package hands out is the rule its own tests live by."""
+    assert shadowed_test_problems(Layout(root=ROOT), TEST_FOLDERS) == []
+
+
+def test_the_test_name_reader_finds_the_files_it_is_meant_to_judge(tmp_path):
+    """A detector that finds nothing passes every repository, this one included."""
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_twice.py").write_text(
+        "def test_one():\n    pass\n\n\ndef test_one():\n    pass\n",
+        encoding="utf-8", newline="")
+
+    problems = shadowed_test_problems(Layout(root=tmp_path), TEST_FOLDERS)
+
+    assert len(problems) == 1
+    assert "tests/test_twice.py:5" in problems[0]
+
+
+def test_a_source_that_begins_with_a_byte_order_mark_is_still_judged(tmp_path):
+    """A mark at the head of a file used to take the check down instead of past it.
+
+    Editors on Windows write it by default and nobody sees it in a diff. Read as plain `utf-8`
+    it stays in the text as a first character `ast.parse` refuses, and the check then raised a
+    SyntaxError - worse than silence, because one such file left the repository with no
+    findings from any of the others either.
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "marked.py").write_bytes(
+        codecs.BOM_UTF8 + b"import subprocess\nsubprocess.run(command, text=True)\n")
+
+    problems = process_encoding_problems(Layout(root=tmp_path), ("src",))
+
+    assert len(problems) == 1
+    assert "src/marked.py:2" in problems[0]
+
+
+def test_the_readers_behind_the_mark_all_see_the_same_text(tmp_path):
+    """The mark is dropped by the reading, so no check has to know about it."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "marked.py").write_bytes(
+        codecs.BOM_UTF8 + b'p.write_text(text, encoding="utf-8")\n')
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_marked.py").write_bytes(
+        codecs.BOM_UTF8 + b"def test_one():\n    pass\n\n\ndef test_one():\n    pass\n")
+
+    assert len(text_write_newline_problems(Layout(root=tmp_path), ("src",))) == 1
+    assert len(shadowed_test_problems(Layout(root=tmp_path), TEST_FOLDERS)) == 1

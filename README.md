@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.8.0
+pip install git+https://github.com/keyfire/docsguard@v0.9.0
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody
@@ -71,6 +71,10 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
 
 - **`Layout`** holds the positions of one repository: root, docs folder, site config, manifest.
   Every function takes one, so what is specific to a repository stays in a single literal.
+  Every file this package opens goes through `read_text`, which drops the byte-order mark
+  editors on Windows write by default. A plain `utf-8` read keeps that mark as a first
+  character nobody typed. A page then loses its first heading, and a Python source does not
+  parse at all, so the check over it falls over instead of reporting anything.
 - **Page readers.** `page_body` gives a page without its frontmatter and generator notes,
   `section_body` the body of one section, `headings` the headings of one level,
   `box_headlines` the bold headline of every bullet. `front_description` reads the description
@@ -98,8 +102,8 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
   same file. Both directions are judged here as well. An empty set on the sources side is a
   finding of its own, because a reader that has stopped finding anything would otherwise pass
   in silence.
-- **Conventions of the sources.** Two rules that no test of a feature would ever notice. Both
-  are read with `ast`, and both leave the list of folders to the consumer.
+- **Conventions of the sources.** Three rules that no test of a feature would ever notice. All
+  three are read with `ast`, and all three leave the list of folders to the consumer.
   - `process_encoding_problems` watches the encoding of a started process, with
     `python_sources`, `process_starts`, `asks_for_text` and `encoding_problems` underneath it.
     A process whose output is read as text has to name `encoding="utf-8"`. Otherwise the output
@@ -115,6 +119,13 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
     hides it, and on a machine without that setting the whole file goes to a public repository
     as one change of line endings. This rule takes a shorter list of folders than the process
     one: what a test writes goes to a temporary directory and outlives nothing.
+  - `shadowed_test_problems` watches the NAME of a test, with `shadowed_definitions` and
+    `shadowed_problems` underneath it. A test that arrives under the name of an existing one
+    takes its place. Python keeps the last definition, pytest collects what the module ended up
+    with, and the number of tests goes UP, because the newcomer was added. Nothing in the run
+    says the older test has stopped running. The finding names the line of the newcomer, which
+    is the definition to rename. Every namespace is judged on its own, so two classes are still
+    allowed a method of the same name.
 - **Jargon.** `jargon_problems` reads the Russian pages of a repository and names the
   transliterated word that has a Russian one. The dictionary is `JARGON`, one `JargonWord` per
   word: the root it is recognized by, the name a repository switches it off by, and the Russian
@@ -164,8 +175,8 @@ ways. A row added or dropped in the code alone fails the run until both editions
 too.
 
 The package keeps the conventions it ships. Its own suite runs `process_encoding_problems` over
-`docsguard`, `tests` and `scripts`, and `text_write_newline_problems` over `docsguard` and
-`scripts`, the two whose writes outlive the run.
+`docsguard`, `tests` and `scripts`, `text_write_newline_problems` over `docsguard` and
+`scripts`, the two whose writes outlive the run, and `shadowed_test_problems` over `tests`.
 
 The gap this was written for was the package's own. A function lived here and was named in no
 edition of the README, while three repositories were installing the package to be told about

@@ -1,7 +1,7 @@
 """Conventions of the sources that no test of a feature would ever notice.
 
-A convention nobody wrote down is a convention every new file gets to rediscover. Two of them
-live here, and both were rediscovered the hard way in the repositories this package serves.
+A convention nobody wrote down is a convention every new file gets to rediscover. Three of them
+live here, and each was rediscovered the hard way in the repositories this package serves.
 
 The first is the encoding of a started PROCESS: every process one repository starts asks for
 text and names the encoding, a new script did not, and the failure was SILENT - the output of a
@@ -18,9 +18,16 @@ that appends a link to two changelog editions and rewrote both of them entirely;
 beside it were already passing `newline=""`, which is the only reason the convention was
 recognizable as one.
 
-Nothing about either is one repository's business. The engine and the bridge start processes the
-same way, write their pages the same way, and have the same silent failure waiting - which is
-why the mechanics live here and what stays with the consumer is the list of folders to read.
+The third is the name of a TEST. A test that arrives under the name of an existing one takes
+its place without a word: Python keeps the last definition, pytest collects what the module
+ended up with, and the count goes UP, because the newcomer was added. Nothing in the run says a
+test was lost. It happened while the newline convention above was being written - the two rules
+each came with a finding-names-the-line test, and the older one was gone.
+
+Nothing about any of the three is one repository's business. The engine and the bridge start
+processes the same way, write their pages the same way, name their tests the same way, and have
+the same silent failure waiting - which is why the mechanics live here and what stays with the
+consumer is the list of folders to read.
 
 Read with `ast` rather than with a regular expression, and that is the whole point: the call
 that started the first of them is written `(run or subprocess.run)(...)`, so a check looking for
@@ -34,7 +41,7 @@ import ast
 from collections.abc import Iterable
 from pathlib import Path
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 #: The functions of `subprocess` that start a process.
 STARTERS = frozenset({"run", "Popen", "call", "check_call", "check_output"})
@@ -111,7 +118,7 @@ def process_encoding_problems(layout: Layout, folders: Iterable[str]) -> list[st
     """Every process read as text without an encoding, across the folders of one repository."""
     problems: list[str] = []
     for path in python_sources(layout, folders):
-        problems += encoding_problems(path.read_text(encoding="utf-8"),
+        problems += encoding_problems(read_text(path),
                                       path.relative_to(layout.root).as_posix())
     return problems
 
@@ -178,6 +185,68 @@ def text_write_newline_problems(layout: Layout, folders: Iterable[str]) -> list[
     """
     problems: list[str] = []
     for path in python_sources(layout, folders):
-        problems += newline_problems(path.read_text(encoding="utf-8"),
+        problems += newline_problems(read_text(path),
                                      path.relative_to(layout.root).as_posix())
+    return problems
+
+
+#: The prefix pytest collects a test function by. A repository that has renamed it in its own
+#: settings passes its own prefix; nobody in this family has.
+TEST_PREFIX = "test_"
+
+
+def _bodies(tree: ast.AST) -> list[list[ast.stmt]]:
+    """Every place a name can be defined in: the module, and the inside of each class.
+
+    One list per namespace, because two classes are allowed a method of the same name and
+    neither of them shadows anything. Judging the file as one heap would report that pair.
+    """
+    found: list[list[ast.stmt]] = [list(getattr(tree, "body", []))]
+    found += [node.body for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+    return found
+
+
+def shadowed_definitions(tree: ast.AST, prefix: str = TEST_PREFIX) -> list[tuple[int, str]]:
+    """(line, name) of every definition that takes the place of an earlier one beside it.
+
+    The line is the one to go to: the FIRST definition still works, and what has to be renamed
+    is the newcomer that arrived under its name.
+    """
+    shadowed: list[tuple[int, str]] = []
+    for body in _bodies(tree):
+        seen: set[str] = set()
+        for node in body:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if not node.name.startswith(prefix):
+                continue
+            if node.name in seen:
+                shadowed.append((node.lineno, node.name))
+            seen.add(node.name)
+    return sorted(shadowed)
+
+
+def shadowed_problems(source: str, where: str, prefix: str = TEST_PREFIX) -> list[str]:
+    """The tests of one file that another test of the same name has silently replaced."""
+    return [f"{where}:{line}: {name} is defined again here - the earlier test of that name has "
+            "stopped running"
+            for line, name in shadowed_definitions(ast.parse(source), prefix)]
+
+
+def shadowed_test_problems(
+    layout: Layout,
+    folders: Iterable[str],
+    prefix: str = TEST_PREFIX,
+) -> list[str]:
+    """Every test replaced by a namesake, across the test folders of one repository.
+
+    The folders are the consumer's knowledge, as they are for the two conventions above, and
+    here they are the folders pytest collects from. Pointing this at the code as well would
+    cost nothing and say nothing: a helper named `test_something` outside a test folder is not
+    collected, so replacing it loses no test.
+    """
+    problems: list[str] = []
+    for path in python_sources(layout, folders):
+        problems += shadowed_problems(read_text(path),
+                                      path.relative_to(layout.root).as_posix(), prefix)
     return problems

@@ -40,7 +40,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 
 @dataclass(frozen=True)
@@ -241,7 +241,7 @@ def jargon_problems(
 
     texts: dict[str, str] = {}
     for path in russian_pages(layout, pages):
-        texts[path.relative_to(layout.root).as_posix()] = path.read_text(encoding="utf-8")
+        texts[path.relative_to(layout.root).as_posix()] = read_text(path)
     for name in documents:
         if name not in texts:
             texts[name] = layout.document(name)
@@ -324,7 +324,7 @@ def source_jargon_problems(
             problems.append(f"{name}: the source is named for the jargon check and is not "
                             "there - has it been renamed?")
             continue
-        problems += source_findings(path.read_text(encoding="utf-8"), name,
+        problems += source_findings(read_text(path), name,
                                     allow=allowed, dictionary=rows)
     return problems
 
