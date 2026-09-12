@@ -27,7 +27,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import docsguard  # noqa: E402
-from docsguard import Layout, coverage_problems, run, section_body  # noqa: E402
+from docsguard import (  # noqa: E402
+    Layout,
+    coverage_problems,
+    jargon_problems,
+    jargon_self_check,
+    run,
+    section_body,
+)
 
 #: The repository publishes no site and keeps no `docs` folder: the pages are the two editions
 #: of the README at the root, and the layout says so instead of a reader special-casing it.
@@ -41,10 +48,11 @@ SURFACE = (("README.md", "What is in it"), ("README.ru.md", "Что внутри
 _QUOTED = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 
 #: Words the surface section quotes that are not part of the surface. One each, with its
-#: reason: `ast` is the standard-library module a reader is told the check parses with. A word
-#: is added here only when it is deliberately not a capability - the list is short on purpose,
-#: because anything in it is a name the coverage check stops judging.
-NOT_THE_SURFACE = frozenset({"ast"})
+#: reason: `ast` is the standard-library module a reader is told the check parses with, and
+#: `pipeline` is the identifier the jargon bullet shows being left alone. A word is added
+#: here only when it is deliberately not a capability - the list is short on purpose, because
+#: anything in it is a name the coverage check stops judging.
+NOT_THE_SURFACE = frozenset({"ast", "pipeline"})
 
 #: The install line a consumer copies: the URL and what it is pinned to.
 _INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(\S+)")
@@ -103,7 +111,19 @@ def check_install() -> list[str]:
     return problems
 
 
-CHECKS = (check_surface, check_install)
+def check_jargon() -> list[str]:
+    """The Russian edition is written in Russian, and the dictionary that says so is awake.
+
+    Two halves, and the first one is about the guard rather than about the README. A root
+    that has lost a letter finds nothing and reads exactly like a repository in order, so
+    the dictionary is proved on its own samples before it is let near a page. Then it reads
+    the Russian README, the way a consumer points it at its own pages. This repository's
+    pages ARE its two READMEs, so that one file is the whole of its Russian documentation.
+    """
+    return jargon_self_check() + jargon_problems(LAYOUT)
+
+
+CHECKS = (check_surface, check_install, check_jargon)
 
 
 def problems() -> list[str]:

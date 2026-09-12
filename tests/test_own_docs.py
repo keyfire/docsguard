@@ -130,3 +130,13 @@ def test_a_renamed_section_is_a_finding_rather_than_silence(sabotage, guard):
 
     assert len(problems) == 1
     assert "What is in it" in problems[0]
+
+
+def test_jargon_that_crept_into_the_russian_edition_is_found(sabotage, guard):
+    """The dictionary reads the Russian edition of this repository, not a consumer's alone."""
+    sabotage("README.ru.md", "Сторож работает на CI", "Сторож работает в прогонах CI")
+
+    problems = guard.problems()
+
+    assert len(problems) == 1
+    assert "README.ru.md" in problems[0] and "прогонах" in problems[0]

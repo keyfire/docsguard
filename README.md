@@ -23,7 +23,7 @@ The guard runs in CI and is never shipped to users, so it is installed from git 
 released. Pin it to a tag, not to a branch:
 
 ```
-pip install git+https://github.com/keyfire/docsguard@v0.5.0
+pip install git+https://github.com/keyfire/docsguard@v0.6.0
 ```
 
 A consumer pinned to `@main` picks up a change made here in the middle of its own run. Nobody
@@ -115,6 +115,17 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
     hides it, and on a machine without that setting the whole file goes to a public repository
     as one change of line endings. This rule takes a shorter list of folders than the process
     one: what a test writes goes to a temporary directory and outlives nothing.
+- **Jargon.** `jargon_problems` reads the Russian pages of a repository and names the
+  transliterated word that has a Russian one. The dictionary is `JARGON`, one `JargonWord` per
+  word: the root it is recognized by, the name a repository switches it off by, and the Russian
+  to write instead. A repository that needs a word of its own adds a row. A repository whose
+  subject needs a word the dictionary forbids switches that row off by name. `jargon_findings`
+  judges one text and quotes the word in the form the page wrote it, which is the form a writer
+  can search for. `russian_pages` collects the pages. `without_code` blanks out what is not
+  prose: an identifier in backticks, a fenced block, a link target, a file name. It blanks in
+  place, so the line numbers hold and `pipeline` stays the name of a thing. `jargon_self_check`
+  proves the dictionary on samples before it reads a page. A root that has lost a letter finds
+  nothing, and finding nothing reads exactly like a repository in order.
 - **`run` and `report`.** `run` calls every check, collects what they find and hands the list
   to `report`, which prints it and answers with the exit code CI reads. A check that raises
   becomes a finding of its own, so a bug in the guard cannot read as "no problems".
@@ -128,6 +139,10 @@ judged with it. The tag they pin has to be the version the package reports, so a
 leave consumers copying the URL of the previous release. The check runs in CI on every push,
 and the test suite asserts the same thing. A new function reaches `main` only together with the
 two lines that tell a reader it exists.
+
+The jargon dictionary reads the Russian edition of this README as well, and proves itself on
+its own samples in the same run. The words it catches are quoted in backticks above, which is
+what tells the check they are names here.
 
 The package keeps the conventions it ships. Its own suite runs `process_encoding_problems` over
 `docsguard`, `tests` and `scripts`, and `text_write_newline_problems` over `docsguard` and
