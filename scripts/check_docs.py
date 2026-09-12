@@ -58,9 +58,10 @@ NOT_THE_SURFACE = frozenset({"ast", "pipeline"})
 #: The install line a consumer copies: the URL and what it is pinned to.
 _INSTALL = re.compile(r"pip install git\+https://github\.com/[\w.-]+/docsguard@(\S+)")
 
-#: A dictionary word the way an edition quotes it: backticks around Russian letters and nothing
-#: besides them. `allow=("хук",)` is a call rather than a word, and this reads past it.
-_JARGON_WORD = re.compile(r"`([а-яё]+)`")
+#: A dictionary word the way an edition quotes it: backticks around Russian letters, with the
+#: hyphen of `топ-объект` allowed between them and nothing else. `allow=("хук",)` is a call
+#: rather than a word, and this reads past it.
+_JARGON_WORD = re.compile(r"`([а-яё]+(?:-[а-яё]+)*)`")
 
 
 def public_names() -> set[str]:

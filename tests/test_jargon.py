@@ -4,8 +4,13 @@ Leaving alone is the harder half, and it is where a check like this dies. A guar
 "пингвин" because "пин" is inside it, or the `pipeline` a page quotes on purpose, is a guard a
 writer switches off within a week. So most of the provocations here are innocent text: a root
 sitting inside a Russian word, an identifier in backticks, a fenced block, a link, a file name.
+
+The sources are judged by the same dictionary and have their own ways of going wrong, so they
+have their own provocations at the bottom: the English half of a message beside its Russian
+one, the key above both, and the field a template leaves for a value.
 """
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -17,6 +22,9 @@ from docsguard import (
     jargon_findings,
     jargon_problems,
     jargon_self_check,
+    russian_strings,
+    source_findings,
+    source_jargon_problems,
     without_code,
 )
 
@@ -97,6 +105,46 @@ def test_the_words_added_on_12_september_are_found(written, instead):
     found = jargon_findings(written, "index.ru.md")
 
     assert len(found) == 1 and instead in found[0]
+
+
+@pytest.mark.parametrize("written, instead", [
+    ("Дашборд собирает три графика.", "сводка, панель"),
+    ("Дашборды разъехались по вкладкам.", "сводка, панель"),
+    ("Бэкенд отвечает за счета.", "серверная часть"),
+    ("Бекенду добавили кэш.", "серверная часть"),
+    ("Бэк-энд живёт в соседнем репозитории.", "серверная часть"),
+    ("Лаунчер поднимает сервер.", "программа запуска"),
+    ("Лаунчером пользуются оба.", "программа запуска"),
+    ("Мейнтейнер читает письма по очереди.", "сопровождающий"),
+    ("Мэйнтейнеры собираются раз в месяц.", "сопровождающий"),
+    ("Топ-объект дерева один.", "объект верхнего уровня"),
+    ("Топ-объекты перечислены ниже.", "объект верхнего уровня"),
+    ("Легаси переписывают частями.", "унаследованный код"),
+    ("Легаси-код никто не трогает.", "унаследованный код"),
+])
+def test_the_words_added_on_13_september_are_found(written, instead):
+    """Six rows came from the documentation of the tools, each with its own Russian."""
+    found = jargon_findings(written, "index.ru.md")
+
+    assert len(found) == 1 and instead in found[0]
+
+
+@pytest.mark.parametrize("innocent", [
+    # The root sitting inside a word that means something else entirely.
+    "Бэкап уехал на другой диск.",
+    "Бэк-вокал записали отдельно.",
+    "Мейнстрим тут ни при чём.",
+    "В топе выдачи чужая страница.",
+    "Топором такое не рубят.",
+    # The Latin the word was transliterated from, and the Russian the row asks for instead.
+    "Папка legacy и поле dashboard написаны латиницей.",
+    "Сводка на панели показывает серверную часть.",
+    "Программа запуска зовёт объект верхнего уровня.",
+    "Сопровождающий разбирает унаследованный код.",
+])
+def test_a_word_added_on_13_september_stays_out_of_other_words(innocent):
+    """Six roots joined the dictionary, and none of them may eat an innocent word."""
+    assert jargon_findings(innocent, "index.ru.md") == []
 
 
 @pytest.mark.parametrize("latin", [
@@ -194,3 +242,113 @@ def test_every_row_carries_a_name_a_root_and_a_russian_word_to_write():
         assert word.name and word.root and word.instead, word
 
     assert len({word.name for word in JARGON}) == len(JARGON)
+
+
+#: A message catalog the way the three repositories write one: the key, the Russian a person
+#: reads, the English beside it, and the fields a template fills in.
+CATALOG = '''\
+"""Language of the output."""
+
+MESSAGES = {
+    "build.pipeline-run": {
+        "ru": "сборка {path} не найдена в {base}",
+        "en": "the build of {path} was not found in {base}",
+    },
+}
+'''
+
+
+def test_the_russian_of_a_catalog_is_read_and_its_english_pair_is_left_alone():
+    """The English half says `build`, which is the very word the Russian row is named after."""
+    assert source_findings(CATALOG, "i18n.py") == []
+
+    planted = CATALOG.replace("сборка {path}", "билд {path}")
+
+    found = source_findings(planted, "i18n.py")
+    assert len(found) == 1
+    assert found[0].startswith('i18n.py:5: "билд" is jargon')
+    assert "сборка" in found[0]
+
+
+def test_the_key_of_a_message_is_not_prose():
+    """A key is Latin by construction, so the Cyrillic test leaves it where it is."""
+    source = 'MESSAGES = {"deploy.build-run": {"ru": "сборка применена"}}\n'
+
+    assert source_findings(source, "i18n.py") == []
+
+
+def test_a_template_field_is_not_prose():
+    """A field is where a value goes; the wording around it is the writer's, the name is not."""
+    assert source_findings('TEXT = "Собрано: {билдов} из {всего}"\n', "i18n.py") == []
+
+    found = source_findings('TEXT = "Собрано билдов: {count}"\n', "i18n.py")
+
+    assert len(found) == 1 and '"билдов"' in found[0]
+
+
+def test_two_strings_written_side_by_side_are_one_word():
+    """Why this is parsed and not searched: the file has "пин", the value has "пингвин"."""
+    source = 'TEXT = ("пин"\n        "гвин отпер шпингалет")\n'
+
+    assert source_findings(source, "i18n.py") == []
+
+
+def test_a_word_split_between_two_literals_is_still_that_word():
+    """The other half of the same coin: neither line carries the word, the value does."""
+    source = 'TEXT = ("Красный про"\n        "гон никто не читает.")\n'
+
+    found = source_findings(source, "i18n.py")
+
+    assert len(found) == 1 and '"прогон"' in found[0]
+
+
+def test_a_finding_names_the_line_the_literal_begins_on():
+    """The value and the source are not the same text, so a reader is sent to the literal."""
+    source = 'FIRST = "чисто"\nSECOND = (\n    "Красный прогон"\n    " никто не читает."\n)\n'
+
+    found = source_findings(source, "i18n.py")
+
+    assert len(found) == 1 and found[0].startswith("i18n.py:3:")
+
+
+def test_the_reader_takes_the_russian_strings_and_nothing_else():
+    """A source is mostly names, and a name is not a sentence anybody reads."""
+    source = 'KEY = "build.not-found"\nRU = "не найден"\nEN = "not found"\nN = 3\n'
+
+    assert russian_strings(ast.parse(source)) == [(2, "не найден")]
+
+
+def test_the_strings_come_back_in_the_order_the_file_writes_them():
+    """Findings are read top to bottom, the way a reader walks the file."""
+    source = 'A = {"x": "прогон", "y": "билд"}\nB = "дефолт"\n'
+
+    assert [line for line, _ in russian_strings(ast.parse(source))] == [1, 1, 2]
+
+
+def test_the_sources_a_repository_names_are_read(tmp_path: Path):
+    """The entry a consumer calls: its own files, by path from the root."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "i18n.py").write_text(CATALOG.replace("сборка {path}", "билд {path}"),
+                                              encoding="utf-8")
+    (tmp_path / "src" / "other.py").write_text('TEXT = "Красный прогон."\n', encoding="utf-8")
+
+    problems = source_jargon_problems(Layout(root=tmp_path), ("src/i18n.py",))
+
+    assert len(problems) == 1
+    assert problems[0].startswith("src/i18n.py:")
+
+
+def test_a_named_source_that_is_not_there_is_a_finding(tmp_path: Path):
+    """A catalog that has been renamed leaves this check reading nothing and passing."""
+    problems = source_jargon_problems(Layout(root=tmp_path), ("src/i18n.py",))
+
+    assert len(problems) == 1 and "not there" in problems[0]
+
+
+def test_a_source_switches_off_a_word_the_same_way_a_page_does(tmp_path: Path):
+    (tmp_path / "i18n.py").write_text('TEXT = "Хуки стоят перед коммитом."\n', encoding="utf-8")
+    layout = Layout(root=tmp_path)
+
+    assert len(source_jargon_problems(layout, ("i18n.py",))) == 1
+    assert source_jargon_problems(layout, ("i18n.py",), allow=("хук",)) == []
+    assert len(source_jargon_problems(layout, ("i18n.py",), allow=("хуки",))) == 2
