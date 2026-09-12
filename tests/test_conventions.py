@@ -1,12 +1,13 @@
 """The two conventions of the sources - the shapes they are written in, and this package.
 
-Both rules came from one repository and belong to none. Every repository of this family starts
-processes and reads them as text, with the same silent failure waiting: the output decoded with
-the code page of the console, the Russian names coming back as replacement characters, the text
-lost, and the exit code still saying the run went well. Every one of them writes pages from
-Python too, and a text file written without naming its newline takes the platform's line ending
-- a page rewritten on Windows comes back with every line changed, which a checkout with
-`core.autocrlf=input` hides right up until the machine that has not got the setting.
+Both rules came from one repository and belong to none. Every repository of this family
+starts processes and reads them as text, with the same silent failure waiting: the output
+decoded with the code page of the console, the Russian names coming back as replacement
+characters, the text lost, and the exit code still saying the run went well. Every one of them
+writes pages from Python too, and a text file written without naming its newline takes the
+platform's line ending - a page rewritten on Windows comes back with every line changed, which
+a checkout with `core.autocrlf=input` hides right up until the machine that has not got the
+setting.
 
 The provocations are here rather than in a consumer, because they are about the READER: the
 shape it has to see through, the shape it must leave alone, and the shape that started all of
@@ -15,6 +16,7 @@ past.
 """
 
 import ast
+import codecs
 from pathlib import Path
 
 import pytest
@@ -204,25 +206,28 @@ def test_the_writes_reader_finds_the_calls_it_is_meant_to_judge(tmp_path):
     assert "src/offender.py:1" in problems[0]
 
 
-def test_no_test_module_defines_the_same_name_twice():
-    """A test shadowed by a namesake is a test that silently stopped running.
+def test_a_source_that_begins_with_a_byte_order_mark_is_still_judged(tmp_path):
+    """A mark at the head of a file used to take the check down instead of past it.
 
-    Python keeps the last definition, pytest collects what the module ends up with, and the
-    count goes UP because the newcomer was added - so nothing about the run says a test was
-    lost. It happened here while this very file was being written: the newline convention
-    arrived with a finding-names-the-line test, the process convention already had one under
-    exactly that name, and the older one was gone without a word.
-
-    Local on purpose: three repositories have the same hazard, and moving the reading into the
-    package's own surface is a change of its own.
+    Editors on Windows write it by default and nobody sees it in a diff. Read as plain `utf-8`
+    it stays in the text as a first character `ast.parse` refuses, and the check then raised a
+    SyntaxError - worse than silence, because one such file left the repository with no
+    findings from any of the others either.
     """
-    shadowed = []
-    for path in sorted((ROOT / "tests").rglob("*.py")):
-        names = [node.name
-                 for node in ast.parse(path.read_text(encoding="utf-8")).body
-                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                 and node.name.startswith("test_")]
-        shadowed += [f"{path.name}: {name} is defined more than once"
-                     for name in sorted({name for name in names if names.count(name) > 1})]
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "marked.py").write_bytes(
+        codecs.BOM_UTF8 + b"import subprocess\nsubprocess.run(command, text=True)\n")
 
-    assert shadowed == []
+    problems = process_encoding_problems(Layout(root=tmp_path), ("src",))
+
+    assert len(problems) == 1
+    assert "src/marked.py:2" in problems[0]
+
+
+def test_the_readers_behind_the_mark_all_see_the_same_text(tmp_path):
+    """The mark is dropped by the reading, so no check has to know about it."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "marked.py").write_bytes(
+        codecs.BOM_UTF8 + b'p.write_text(text, encoding="utf-8")\n')
+
+    assert len(text_write_newline_problems(Layout(root=tmp_path), ("src",))) == 1

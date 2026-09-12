@@ -3,12 +3,12 @@
 What a repository keeps for itself is the TABLE OF POSITIONS - where its pages, site config and
 manifest live - and the checks that are about its own subject: the tools it registers, the
 environment variables it reads, the rules it implements. What lives here is everything those
-checks had in common and had already copied three times: reading a page without its
-frontmatter, the block between injection markers, the annotations a repository states about
-itself, the statements that have to be told in the same words everywhere, the coverage of
-what the sources offer by what a document lists, the conventions of the sources that no test
-of a feature would notice, and the runner that prints the findings and answers with an exit
-code.
+checks had in common and had already copied three times: reading a file whatever mark its
+editor put at the head of it, reading a page without its frontmatter, the block between
+injection markers, the annotations a repository states about itself, the statements that have
+to be told in the same words everywhere, the coverage of what the sources offer by what a
+document lists, the conventions of the sources that no test of a feature would notice, and the
+runner that prints the findings and answers with an exit code.
 
     from pathlib import Path
     from docsguard import Layout, PitchItem, pitch_problems, run
@@ -55,7 +55,7 @@ from .jargon import (
     source_jargon_problems,
     without_code,
 )
-from .layout import Layout
+from .layout import Layout, read_text
 from .pages import (
     IMAGE,
     box_headlines,
@@ -106,6 +106,7 @@ __all__ = [
     "process_starts",
     "pyproject_description",
     "python_sources",
+    "read_text",
     "report",
     "run",
     "russian_pages",

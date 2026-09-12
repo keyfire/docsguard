@@ -12,7 +12,7 @@ import fnmatch
 import re
 from pathlib import Path
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 #: A frontmatter block at the top of a page.
 _FRONTMATTER = re.compile(r"^---\n[\s\S]*?\n---\n")
@@ -93,7 +93,7 @@ def lede(path: Path) -> str:
     sentence a reader actually meets is the one after them.
     """
     skip = ("#", ">", "!", "[") + _SWITCHER_PREFIXES + ("**Documentation", "**Документация")
-    for block in re.split(r"\n\s*\n", path.read_text(encoding="utf-8")):
+    for block in re.split(r"\n\s*\n", read_text(path)):
         if block.strip() and not block.strip().startswith(skip):
             return block.strip()
     return ""
@@ -131,7 +131,7 @@ def site_pages(layout: Layout) -> list[Path]:
     """The pages the site actually publishes - the site config says which are left out."""
     if layout.site_config is None or not layout.site_config.is_file():
         return sorted(layout.docs.glob("*.md"))
-    config = layout.site_config.read_text(encoding="utf-8")
+    config = read_text(layout.site_config)
     block = re.search(r"exclude:\s*\[([^\]]*)\]", config, re.S)
     patterns = re.findall(r'"([^"]+)"', block.group(1)) if block else []
     return [

@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 #: The `description` of a site config, possibly written as several concatenated string parts.
 _SITE_DESCRIPTION = re.compile(r"\n  description:\s*((?:\s*\"[^\"]*\"\s*\+?)+),")
@@ -51,7 +51,7 @@ def site_description(layout: Layout) -> str:
     """The `description` of the site config - the meta description of every page."""
     if layout.site_config is None or not layout.site_config.is_file():
         return ""
-    found = _SITE_DESCRIPTION.search(layout.site_config.read_text(encoding="utf-8"))
+    found = _SITE_DESCRIPTION.search(read_text(layout.site_config))
     return "".join(re.findall(r'"([^"]*)"', found.group(1))) if found else ""
 
 
@@ -59,7 +59,7 @@ def pyproject_description(layout: Layout) -> str:
     """The `description` of the packaging manifest - the summary line of the PyPI card."""
     if layout.pyproject is None or not layout.pyproject.is_file():
         return ""
-    found = _PYPROJECT_DESCRIPTION.search(layout.pyproject.read_text(encoding="utf-8"))
+    found = _PYPROJECT_DESCRIPTION.search(read_text(layout.pyproject))
     return found.group(1) if found else ""
 
 

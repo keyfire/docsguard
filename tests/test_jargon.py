@@ -11,6 +11,7 @@ one, the key above both, and the field a template leaves for a value.
 """
 
 import ast
+import codecs
 from pathlib import Path
 
 import pytest
@@ -352,3 +353,18 @@ def test_a_source_switches_off_a_word_the_same_way_a_page_does(tmp_path: Path):
     assert len(source_jargon_problems(layout, ("i18n.py",))) == 1
     assert source_jargon_problems(layout, ("i18n.py",), allow=("хук",)) == []
     assert len(source_jargon_problems(layout, ("i18n.py",), allow=("хуки",))) == 2
+
+
+def test_a_marked_source_is_read_rather_than_crashed_on(tmp_path: Path):
+    """A source that begins with a byte-order mark used to take this check down.
+
+    Reading a marked file as plain `utf-8` leaves the mark in the text, `ast.parse` refuses it,
+    and the check raised a SyntaxError instead of naming a word. A repository with one such
+    file got no findings from its other catalogs either, because the run never reached them.
+    """
+    (tmp_path / "i18n.py").write_bytes(
+        codecs.BOM_UTF8 + 'TEXT = "Красный прогон."\n'.encode("utf-8"))
+
+    problems = source_jargon_problems(Layout(root=tmp_path), ("i18n.py",))
+
+    assert len(problems) == 1 and "прогон" in problems[0]

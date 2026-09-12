@@ -19,8 +19,8 @@ beside it were already passing `newline=""`, which is the only reason the conven
 recognizable as one.
 
 Nothing about either is one repository's business. The engine and the bridge start processes the
-same way, write their pages the same way, and have the same silent failure waiting - which is
-why the mechanics live here and what stays with the consumer is the list of folders to read.
+same way, write their pages the same way, and have the same silent failure waiting - which is why the mechanics live here and what stays with the
+consumer is the list of folders to read.
 
 Read with `ast` rather than with a regular expression, and that is the whole point: the call
 that started the first of them is written `(run or subprocess.run)(...)`, so a check looking for
@@ -34,7 +34,7 @@ import ast
 from collections.abc import Iterable
 from pathlib import Path
 
-from .layout import Layout
+from .layout import Layout, read_text
 
 #: The functions of `subprocess` that start a process.
 STARTERS = frozenset({"run", "Popen", "call", "check_call", "check_output"})
@@ -111,7 +111,7 @@ def process_encoding_problems(layout: Layout, folders: Iterable[str]) -> list[st
     """Every process read as text without an encoding, across the folders of one repository."""
     problems: list[str] = []
     for path in python_sources(layout, folders):
-        problems += encoding_problems(path.read_text(encoding="utf-8"),
+        problems += encoding_problems(read_text(path),
                                       path.relative_to(layout.root).as_posix())
     return problems
 
@@ -178,6 +178,6 @@ def text_write_newline_problems(layout: Layout, folders: Iterable[str]) -> list[
     """
     problems: list[str] = []
     for path in python_sources(layout, folders):
-        problems += newline_problems(path.read_text(encoding="utf-8"),
+        problems += newline_problems(read_text(path),
                                      path.relative_to(layout.root).as_posix())
     return problems

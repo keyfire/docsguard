@@ -71,6 +71,10 @@ raise SystemExit(run([check_annotations, check_tools, check_environment]))
 
 - **`Layout`** holds the positions of one repository: root, docs folder, site config, manifest.
   Every function takes one, so what is specific to a repository stays in a single literal.
+  Every file this package opens goes through `read_text`, which drops the byte-order mark
+  editors on Windows write by default. A plain `utf-8` read keeps that mark as a first
+  character nobody typed. A page then loses its first heading, and a Python source does not
+  parse at all, so the check over it falls over instead of reporting anything.
 - **Page readers.** `page_body` gives a page without its frontmatter and generator notes,
   `section_body` the body of one section, `headings` the headings of one level,
   `box_headlines` the bold headline of every bullet. `front_description` reads the description
